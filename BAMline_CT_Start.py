@@ -9,7 +9,6 @@ from ask_once import ask_once
 import tkinter.filedialog
 import os
 
-print('Hello World')
 
 standard_path = "C:/Preview-CT_Messung/"
 

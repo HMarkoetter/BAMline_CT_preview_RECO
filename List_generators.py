@@ -10,7 +10,7 @@ import math
 import time
 import csv
 import tkinter.filedialog
-#from epics import caget, caput, camonitor
+from epics import caget, caput, camonitor
 
 pg.setConfigOption('background', 'w')   # Plothintergrund weiß (2D)
 pg.setConfigOptions(antialias=True)     # Enable antialiasing for prettier plots
@@ -59,12 +59,12 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         self.angular_range_3.valueChanged.connect(self.generate_list_refraction)
         self.save_3.clicked.connect(self.save_files_refraction)
 
-        #self.getTomoPosition.clicked.connect(self.get_Tomo_pos)
-        #self.getTomoPosition_2.clicked.connect(self.get_Tomo_pos_2)
-        #self.getTomoPosition_3.clicked.connect(self.get_Tomo_pos_3)
-        #self.getFFPosition.clicked.connect(self.get_FF_pos)
-        #self.getFFPosition_2.clicked.connect(self.get_FF_pos_2)
-        #self.getFFPosition_3.clicked.connect(self.get_FF_pos_3)
+        self.getTomoPosition.clicked.connect(self.get_Tomo_pos)
+        self.getTomoPosition_2.clicked.connect(self.get_Tomo_pos_2)
+        self.getTomoPosition_3.clicked.connect(self.get_Tomo_pos_3)
+        self.getFFPosition.clicked.connect(self.get_FF_pos)
+        self.getFFPosition_2.clicked.connect(self.get_FF_pos_2)
+        self.getFFPosition_3.clicked.connect(self.get_FF_pos_3)
 
         print('init')
         self.generate_list()
@@ -443,7 +443,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         self.FF_pos_2.setValue(caget('PEGAS:miocb0101005.RBV'))
 
     def get_FF_pos_3(self):
-        self.FF_pos_3.setValue(caget('PEGAS:miocb???.RBV'))
+        self.FF_pos_3.setValue(caget('PEGAS:miocb???.RBV')) #Hier Motor miocb eintragen
 
 
 
