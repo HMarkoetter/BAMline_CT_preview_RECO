@@ -434,7 +434,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         self.tomo_pos_2.setValue(caget('PEGAS:miocb0101005.RBV'))
 
     def get_Tomo_pos_3(self):
-        self.tomo_pos_3.setValue(caget('PEGAS:miocb???.RBV')) #Hier Motor miocb eintragen
+        self.tomo_pos_3.setValue(caget('PEGAS:miocb0102001.RBV'))
 
     def get_FF_pos(self):
         self.FF_pos.setValue(caget('PEGAS:miocb0101005.RBV'))
@@ -443,7 +443,8 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         self.FF_pos_2.setValue(caget('PEGAS:miocb0101005.RBV'))
 
     def get_FF_pos_3(self):
-        self.FF_pos_3.setValue(caget('PEGAS:miocb???.RBV')) #Hier Motor miocb eintragen
+        self.FF_pos_3.setValue(caget('PEGAS:miocb0102001.RBV'))
+
 
 
 
