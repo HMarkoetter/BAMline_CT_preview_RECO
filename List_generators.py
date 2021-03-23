@@ -542,20 +542,42 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         file_name_theta_3 = path_out_3 + '/theta_list.txt'
         file_name_theta_first_3 = path_out_3 + '/theta_first_list.txt'
         file_name_X_offset_3 = path_out_3 + '/X_offset_list.txt'
-        file_name_csv_list_3 = path_out_3 + '/csv_list.csv'
+        file_name_csv_list_3 = path_out_3 + '/csv_list_'
         file_name_parameter_3 = path_out_3 + '/parameter.csv'
 
 
         # CREATE AND SAVE CSV # =============================================================================================== # CREATE AND SAVE CSV #
 
-        with open(file_name_csv_list_3, mode='w', newline='') as csv_file_3:
-            csv_writer_3 = csv.writer(csv_file_3, delimiter=';', quotechar=' ')  # , quoting=csv.QUOTE_MINIMAL)
-            csv_writer_3.writerow(['TOPO_MICOS_W', 'TOPO_MICOS_X'])
-            n = 0
-            while (n < len(plot_list_pos_3)):
-                csv_writer_3.writerow(["{:.4f}".format(plot_list_3[n]),
-                                     "{:.4f}".format(plot_list_pos_3[n])])
-                n = n + 1
+
+        n = 0
+        for x in range(1, number_of_sequences_3 + 1):
+
+            with open(file_name_csv_list_3 + str(x).zfill(2) + '.csv', mode='w', newline='') as csv_file_3:
+                csv_writer_3 = csv.writer(csv_file_3, delimiter=';', quotechar=' ')  # , quoting=csv.QUOTE_MINIMAL)
+                csv_writer_3.writerow(['TOPO_MICOS_W', 'TOPO_MICOS_X'])
+
+                i = 0
+
+                if x == 1:
+                    while (i < sequence_size_3 + FF_sequence_size_3 + 3 + zero_deg_proj_3/2):
+                        csv_writer_3.writerow(["{:.4f}".format(plot_list_3[n]),
+                                             "{:.4f}".format(plot_list_pos_3[n])])
+                        n = n + 1
+                        i = i + 1
+
+                elif x == number_of_sequences_3:
+                    while (i < sequence_size_3 + 2*FF_sequence_size_3 + 3 + zero_deg_proj_3/2):
+                        csv_writer_3.writerow(["{:.4f}".format(plot_list_3[n]),
+                                             "{:.4f}".format(plot_list_pos_3[n])])
+                        n = n + 1
+                        i = i + 1
+
+                else:
+                    while (i < sequence_size_3 + FF_sequence_size_3 + zero_deg_proj_3/2):
+                        csv_writer_3.writerow(["{:.4f}".format(plot_list_3[n]),
+                                             "{:.4f}".format(plot_list_pos_3[n])])
+                        n = n + 1
+                        i = i + 1
 
 
         # SAVE LISTS TO DISK # ================================================================================================ # SAVE LISTS TO DISK #
