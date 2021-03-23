@@ -548,7 +548,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
 
         # CREATE AND SAVE CSV # =============================================================================================== # CREATE AND SAVE CSV #
 
-
+        # creates for each sequence one csv-file
         n = 0
         for x in range(1, number_of_sequences_3 + 1):
 
