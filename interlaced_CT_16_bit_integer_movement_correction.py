@@ -510,7 +510,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
 
             # SAVE NORMALIZED PROJECTIONS #
             if save_normalized == 1:
-                if save_normalized_classic_order == 1:
+                if save_normalized_classic_order == 1 and number_of_sequences != 1:
                     filename3 = path_out_normalized + namepart + str(int( number_of_sequences * ((i-1) % sequence_size)  +  (theta_first_list[math.floor((i-1)/sequence_size)] - min(theta_first_list)) * number_of_sequences +1 )).zfill(4) + filetype             #INDEPENDENT_FIRST
                 else:
                     filename3 = path_out_normalized + namepart + str(i).zfill(4) + filetype

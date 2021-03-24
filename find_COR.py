@@ -39,6 +39,8 @@ class COR_finder(Ui_COR_finderWindow, QCOR_finderWindow):
         self.rotate.valueChanged.connect(self.shift_COR)
         self.pushButton.clicked.connect(self.save_COR)
         self.contrastSlider.valueChanged.connect(self.shift_COR)
+        self.crop_horizontal_stripe.stateChanged.connect(self.shift_COR)
+        self.crop_vertical_stripe.stateChanged.connect(self.shift_COR)
         print('find COR init')
         #self.done = False
         self.load_COR()
@@ -83,6 +85,7 @@ class COR_finder(Ui_COR_finderWindow, QCOR_finderWindow):
         self.im_180_flipped = numpy.flip(im_180_normalized, axis=1)
         self.im_180_flipped = numpy.nan_to_num(self.im_180_flipped, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
         self.full_size = im.size[0]
+        self.full_size_y = im.size[1]
 
         print('find COR load')
 
@@ -92,10 +95,25 @@ class COR_finder(Ui_COR_finderWindow, QCOR_finderWindow):
         contrast = self.contrastSlider.value()
         self.COR_pos.setText(str((i + self.full_size) / 2))
 
-        self.rotated = ndimage.rotate(self.im_180_flipped, self.rotate.value(), axes= [1,0], reshape=False, output=None, order=3, mode='nearest', cval=0.0, prefilter=True)
+        if self.crop_horizontal_stripe.isChecked() == True and self.crop_vertical_stripe.isChecked() == True:
+            im_180_flipped = self.im_180_flipped[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+            im_000_normalized = self.im_000_normalized[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
 
+        elif self.crop_horizontal_stripe.isChecked() != True and self.crop_vertical_stripe.isChecked() == True:
+            im_180_flipped = self.im_180_flipped[:,round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+            im_000_normalized = self.im_000_normalized[:,round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+
+        elif self.crop_horizontal_stripe.isChecked() == True and self.crop_vertical_stripe.isChecked() != True:
+            im_180_flipped = self.im_180_flipped[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),:]
+            im_000_normalized = self.im_000_normalized[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),:]
+
+        else:
+            im_180_flipped = self.im_180_flipped
+            im_000_normalized = self.im_000_normalized
+
+        self.rotated = ndimage.rotate(im_180_flipped, self.rotate.value(), axes= [1,0], reshape=False, output=None, order=3, mode='nearest', cval=0.0, prefilter=True)
         im_180_flipped_shifted = ndimage.shift(numpy.single(numpy.array(self.rotated)), [0,i], order=3, mode='nearest', prefilter=True)
-        divided = numpy.divide(im_180_flipped_shifted, self.im_000_normalized, out=numpy.zeros_like(im_180_flipped_shifted), where=self.im_000_normalized != 0)
+        divided = numpy.divide(im_180_flipped_shifted, im_000_normalized, out=numpy.zeros_like(im_180_flipped_shifted), where=im_000_normalized != 0)
 
         print(i, self.full_size)
         if 0 < i < self.full_size:

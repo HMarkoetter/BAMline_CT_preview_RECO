@@ -125,8 +125,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>648</width>
-         <height>294</height>
+         <width>660</width>
+         <height>308</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
@@ -140,8 +140,8 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>1500</width>
-            <height>800</height>
+            <width>4008</width>
+            <height>2672</height>
            </size>
           </property>
           <property name="text">
@@ -164,7 +164,7 @@
      <x>0</x>
      <y>0</y>
      <width>701</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
