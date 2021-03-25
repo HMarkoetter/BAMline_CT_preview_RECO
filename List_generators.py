@@ -453,7 +453,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         theta_first_list, theta_list, x_offset_list, sample_pos, FF_pos, FF_sequence_size, number_of_sequences, sequence_size, plot_list_pos, plot_list = self.generate_list()
         zero_deg_proj = self.zero_deg_checkBox.checkState()
 
-        path_out = tkinter.filedialog.askdirectory(title='Choose directory for List-Output')
+        path_out = QtWidgets.QFileDialog.getExistingDirectory()
         print(path_out)
         file_name_theta = path_out + '/theta_list.txt'
         file_name_theta_first = path_out + '/theta_first_list.txt'
@@ -497,7 +497,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
     def save_files_classic(self):
 
         theta_list_2, sample_pos_2, FF_pos_2, FF_sequence_size_2, number_of_sequences_2, sequence_size_2, plot_list_pos_2, plot_list_2 = self.generate_list_classic()
-        path_out_2 = tkinter.filedialog.askdirectory(title='Choose directory for List-Output')
+        path_out_2 = QtWidgets.QFileDialog.getExistingDirectory()
         print(path_out_2)
         file_name_theta_2 = path_out_2 + '/theta_list.txt'
         file_name_csv_list_2 = path_out_2 + '/csv_list.csv'
@@ -537,7 +537,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         theta_first_list_3, theta_list_3, x_offset_list_3, sample_pos_3, FF_pos_3, FF_sequence_size_3, number_of_sequences_3, sequence_size_3, plot_list_pos_3, plot_list_3 = self.generate_list_refraction()
         zero_deg_proj_3 = self.zero_deg_checkBox_3.checkState()
 
-        path_out_3 = tkinter.filedialog.askdirectory(title='Choose directory for List-Output')
+        path_out_3 = QtWidgets.QFileDialog.getExistingDirectory()
         print(path_out_3)
         file_name_theta_3 = path_out_3 + '/theta_list.txt'
         file_name_theta_first_3 = path_out_3 + '/theta_first_list.txt'

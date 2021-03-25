@@ -17,7 +17,11 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
-    path_klick = tkinter.filedialog.askopenfilename(title="Select one file of the scan", initialdir = standard_path)
+    #path_klick = tkinter.filedialog.askopenfilename(title="Select one file of the scan", initialdir = standard_path)
+    path_klick_dialog = QtWidgets.QFileDialog.getOpenFileName()
+    path_klick = path_klick_dialog[0]
+    print(path_klick)
+
     htap = path_klick[::-1]
     path_in = path_klick[0: len(htap) - htap.find('/') - 1: 1]
     ni_htap = path_in[::-1]

@@ -38,7 +38,10 @@ class ask_once(Ui_ask_once_Window, Q_ask_once_Window):
 
     def set_path(self):
 
-        self.path_out = tkinter.filedialog.askdirectory(title="Select one file of the scan", initialdir=self.standard_path)
+        #self.path_out = tkinter.filedialog.askdirectory(title="Select one file of the scan", initialdir=self.standard_path)
+        self.path_out = QtWidgets.QFileDialog.getExistingDirectory()
+        print(self.path_out)
+        self.path_out
         self.textBrowser.setText(self.path_out)
 
 
