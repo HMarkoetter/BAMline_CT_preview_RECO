@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>701</width>
-    <height>462</height>
+    <width>709</width>
+    <height>508</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="4">
+    <item row="8" column="5">
      <widget class="QLabel" name="COR_pos">
       <property name="font">
        <font>
@@ -42,7 +42,7 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="3">
+    <item row="8" column="4">
      <widget class="QLabel" name="label">
       <property name="font">
        <font>
@@ -62,20 +62,6 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="5">
-     <widget class="QPushButton" name="pushButton">
-      <property name="font">
-       <font>
-        <pointsize>12</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Use This Pixel Size</string>
-      </property>
-     </widget>
-    </item>
     <item row="0" column="2">
      <widget class="QLabel" name="label_Title">
       <property name="font">
@@ -90,7 +76,7 @@
       </property>
      </widget>
     </item>
-    <item row="6" column="1" colspan="5">
+    <item row="6" column="1" colspan="6">
      <widget class="QScrollBar" name="COR_slider">
       <property name="minimum">
        <number>-5000</number>
@@ -115,7 +101,21 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="2" colspan="4">
+    <item row="8" column="6">
+     <widget class="QPushButton" name="pushButton">
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Use This Pixel Size</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="2" colspan="5">
      <widget class="QScrollArea" name="scrollArea">
       <property name="widgetResizable">
        <bool>true</bool>
@@ -125,8 +125,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>660</width>
-         <height>308</height>
+         <width>656</width>
+         <height>318</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
@@ -156,6 +156,20 @@
       </widget>
      </widget>
     </item>
+    <item row="8" column="3">
+     <widget class="QCheckBox" name="crop_vertical_stripe">
+      <property name="text">
+       <string>crop vertical stripe</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="2">
+     <widget class="QCheckBox" name="crop_horizontal_stripe">
+      <property name="text">
+       <string>crop horizontal stripe</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -163,8 +177,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>701</width>
-     <height>20</height>
+     <width>709</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>

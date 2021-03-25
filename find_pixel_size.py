@@ -57,6 +57,8 @@ class PixelSize_finder(Ui_PixelSize_finderWindow, QPixelSize_finderWindow):
         self.COR_slider.valueChanged.connect(self.shift)
         self.pushButton.clicked.connect(self.save)
         self.contrastSlider.valueChanged.connect(self.shift)
+        self.crop_horizontal_stripe.stateChanged.connect(self.shift)
+        self.crop_vertical_stripe.stateChanged.connect(self.shift)
         self.pixel_size = 0
         print('Pixel_size init')
         self.load()
@@ -110,6 +112,7 @@ class PixelSize_finder(Ui_PixelSize_finderWindow, QPixelSize_finderWindow):
 
 
         self.full_size = im_unshifted.size[0]
+        self.full_size_y = im_unshifted.size[1]
 
         im_unshifted = numpy.single(numpy.array(im_unshifted))
         im_shifted = numpy.single(numpy.array(im_shifted))
@@ -132,15 +135,36 @@ class PixelSize_finder(Ui_PixelSize_finderWindow, QPixelSize_finderWindow):
         i = self.COR_slider.value()/10 + 0.0001
         contrast = self.contrastSlider.value()
         self.COR_pos.setText(str(abs(round((self.max_shift/i),3))) + 'µm')
-        im_shifted_normalized_shifted = ndimage.shift(numpy.single(numpy.array(self.im_shifted_normalized)), [0,i], order=3, mode='nearest', prefilter=True)
-        divided = numpy.divide(im_shifted_normalized_shifted, self.im_unshifted_normalized, out=numpy.zeros_like(self.im_shifted_normalized), where=self.im_unshifted_normalized!=0)
 
 
-        print(i, self.full_size)
-        if 0 < i < self.full_size:
-            divided2 = divided[:, int(i)    : self.full_size            ]
-        elif 0 > i > - self.full_size:
-            divided2 = divided[:,           : self.full_size + int(i)   ]
+        if self.crop_horizontal_stripe.isChecked() == True and self.crop_vertical_stripe.isChecked() == True:
+            im_shifted_normalized = self.im_shifted_normalized[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+            im_unshifted_normalized = self.im_unshifted_normalized[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+
+        elif self.crop_horizontal_stripe.isChecked() != True and self.crop_vertical_stripe.isChecked() == True:
+            im_shifted_normalized = self.im_shifted_normalized[:,round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+            im_unshifted_normalized = self.im_unshifted_normalized[:,round(self.full_size*4.5/10):round(self.full_size*5.5/10)]
+
+        elif self.crop_horizontal_stripe.isChecked() == True and self.crop_vertical_stripe.isChecked() != True:
+            im_shifted_normalized = self.im_shifted_normalized[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),:]
+            im_unshifted_normalized = self.im_unshifted_normalized[round(self.full_size_y*4.5/10):round(self.full_size_y*5.5/10),:]
+
+        else:
+            im_shifted_normalized = self.im_shifted_normalized
+            im_unshifted_normalized = self.im_unshifted_normalized
+
+
+        im_shifted_normalized_shifted = ndimage.shift(numpy.single(numpy.array(im_shifted_normalized)), [0,i], order=3, mode='nearest', prefilter=True)
+        divided = numpy.divide(im_shifted_normalized_shifted, im_unshifted_normalized, out=numpy.zeros_like(im_shifted_normalized), where=im_unshifted_normalized!=0)
+
+
+
+
+        print(i, im_shifted_normalized.shape[1])
+        if 0 < i < im_shifted_normalized.shape[1]:
+            divided2 = divided[:, int(i)    : im_shifted_normalized.shape[1]            ]
+        elif 0 > i > - im_shifted_normalized.shape[1]:
+            divided2 = divided[:,           : im_shifted_normalized.shape[1] + int(i)   ]
         else:
             divided2 = divided
 

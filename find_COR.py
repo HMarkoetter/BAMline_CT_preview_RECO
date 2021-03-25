@@ -115,13 +115,15 @@ class COR_finder(Ui_COR_finderWindow, QCOR_finderWindow):
         im_180_flipped_shifted = ndimage.shift(numpy.single(numpy.array(self.rotated)), [0,i], order=3, mode='nearest', prefilter=True)
         divided = numpy.divide(im_180_flipped_shifted, im_000_normalized, out=numpy.zeros_like(im_180_flipped_shifted), where=im_000_normalized != 0)
 
-        print(i, self.full_size)
-        if 0 < i < self.full_size:
-            divided2 = divided[:, int(i)    : self.full_size]
-        elif 0 > i > - self.full_size:
-            divided2 = divided[:,           : self.full_size + int(i)]
+
+        print(i, im_180_flipped.shape[1])
+        if 0 < i < im_180_flipped.shape[1]:
+            divided2 = divided[:, int(i)    : im_180_flipped.shape[1]            ]
+        elif 0 > i > - im_180_flipped.shape[1]:
+            divided2 = divided[:,           : im_180_flipped.shape[1] + int(i)   ]
         else:
             divided2 = divided
+
 
         myarray = divided2 * contrast - (contrast - 128)   # 2048 - 1920
         yourQImage = qimage2ndarray.array2qimage(myarray)
