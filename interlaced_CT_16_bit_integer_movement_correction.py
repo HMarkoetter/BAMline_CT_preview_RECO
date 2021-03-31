@@ -375,9 +375,17 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                     im_zero_normalized = numpy.divide(im_zero_sub, FF_sub)
 
                     im_zero_normalized = numpy.nan_to_num(im_zero_normalized, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
-                    im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)), [0, (x_offset_list[i - first] / self.pixel_size)],
-                                        order=3, mode='nearest', prefilter=True)
 
+                    #im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)), [0, (x_offset_list[i - first] / self.pixel_size)],
+                    #                    order=3, mode='nearest', prefilter=True)
+                    if self.find_pixel_size_vertical == True:
+                        im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)),
+                                            [-(x_offset_list[i - first] / self.pixel_size), 0],
+                                            order=3, mode='nearest', prefilter=True)
+                    else:
+                        im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)),
+                                            [0, (x_offset_list[i - first] / self.pixel_size)],
+                                            order=3, mode='nearest', prefilter=True)
 
                     im_zero_divided = numpy.divide(im_zero_normalized, im_000_normalized)
 
@@ -499,7 +507,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
             # SHIFT (SUB PIXEL SHIFT)
 
             if self.find_pixel_size_vertical == True:
-                arr = ndimage.shift(numpy.single(numpy.array(arr)), [(x_offset_list[i - first] / self.pixel_size), 0],
+                arr = ndimage.shift(numpy.single(numpy.array(arr)), [-(x_offset_list[i - first] / self.pixel_size), 0],
                                                           order=3, mode='nearest', prefilter=True)
             else:
                 arr = ndimage.shift(numpy.single(numpy.array(arr)), [0, (x_offset_list[i - first] / self.pixel_size)],

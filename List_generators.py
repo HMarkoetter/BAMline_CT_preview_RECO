@@ -554,7 +554,7 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
 
             with open(file_name_csv_list_3 + str(x).zfill(2) + '.csv', mode='w', newline='') as csv_file_3:
                 csv_writer_3 = csv.writer(csv_file_3, delimiter=';', quotechar=' ')  # , quoting=csv.QUOTE_MINIMAL)
-                csv_writer_3.writerow(['TOPO_MICOS_W', 'TOPO_MICOS_X'])
+                csv_writer_3.writerow(['6G_SAMPLE_ROLL', 'TOPO_MICOS_X'])
 
                 i = 0
 

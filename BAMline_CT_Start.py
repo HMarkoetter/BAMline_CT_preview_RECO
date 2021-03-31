@@ -10,7 +10,7 @@ import tkinter.filedialog
 import os
 
 
-standard_path = "C:/Preview-CT_Messung/"
+#standard_path = "/mnt/raid/TOPO/2021/03/"
 
 if __name__ == "__main__":
 
