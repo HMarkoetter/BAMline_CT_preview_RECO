@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>709</width>
+    <width>849</width>
     <height>508</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>CT-preview - pixel size finder</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -125,7 +125,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>656</width>
+         <width>796</width>
          <height>318</height>
         </rect>
        </property>
@@ -177,7 +177,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>709</width>
+     <width>849</width>
      <height>26</height>
     </rect>
    </property>

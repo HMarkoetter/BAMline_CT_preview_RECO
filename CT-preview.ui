@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1189</width>
-    <height>937</height>
+    <width>850</width>
+    <height>994</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>CT-preview</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QFormLayout" name="formLayout">
@@ -44,8 +44,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>849</width>
-             <height>825</height>
+             <width>455</width>
+             <height>868</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_5">
@@ -1226,8 +1226,8 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1189</width>
-     <height>21</height>
+     <width>850</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuCT_Preview">

@@ -2,15 +2,19 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from pyqtgraph import PlotWidget
+#from pyqtgraph import PlotWidget
 import pyqtgraph as pg
 from PyQt5.uic import loadUiType
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSlot
 import numpy as np
 import math
 import time
 import csv
-import tkinter.filedialog
 from epics import caget, caput, camonitor
+import os
+import sys
 
 pg.setConfigOption('background', 'w')   # Plothintergrund weiß (2D)
 pg.setConfigOptions(antialias=True)     # Enable antialiasing for prettier plots
@@ -445,7 +449,33 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
     def get_FF_pos_3(self):
         self.FF_pos_3.setValue(caget('PEGAS:miocb0102001.RBV'))
 
+"""
+    #def window(self):
+        app = QApplication(sys.argv)
+        win = QWidget()
+        button1 = QPushButton(win)
+        button1.setText("Show dialog!")
+        button1.move(50, 50)
+        button1.clicked.connect(self.showDialog)
+        win.setWindowTitle("Click button")
+        win.show()
+        sys.exit(app.exec_())
 
+    #def showDialog(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText("Message box pop up window")
+        msgBox.setWindowTitle("QMessageBox Example")
+        msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msgBox.buttonClicked.connect(self.msgButtonClick)
+
+        returnValue = msgBox.exec()
+        if returnValue == QMessageBox.Ok:
+            print('OK clicked')
+
+    #def msgButtonClick(i):
+        print("Button clicked is:", i.text())
+"""
 
 
     def save_files(self):
@@ -460,6 +490,13 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
         file_name_X_offset = path_out + '/X_offset_list.txt'
         file_name_csv_list = path_out + '/csv_list.csv'
         file_name_parameter = path_out + '/parameter.csv'
+
+        if len(os.listdir(path_out)) == 0:
+            print("Directory is empty")
+        else:
+            print("Directory is not empty!!!")
+
+            #self.window()
 
 
         # CREATE AND SAVE CSV # =============================================================================================== # CREATE AND SAVE CSV #
@@ -598,10 +635,6 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
             csv_writer_3.writerow(['zero_deg_proj ', str(zero_deg_proj_3),' '])
             csv_writer_3.writerow(['angular_range ', str(self.angular_range_3.value()), ' '])
             csv_writer_3.writerow(['box_lateral_shift ', str(self.box_lateral_shift_3.value()), ' '])
-
-
-
-
 
 
 
