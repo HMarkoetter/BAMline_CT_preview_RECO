@@ -31,7 +31,7 @@ class ask_once(Ui_ask_once_Window, Q_ask_once_Window):
         self.comboBox.addItems(module_choice)
         self.setWindowTitle('BAMline-CT Start')
 
-        self.standard_path = '/mnt/raid/TOPO/2021/03/30_evaluation/'
+        self.standard_path = '/mnt/archiv-triglav/CT/2021/2021_05/Rousseau/Recon/'
         self.textBrowser.setText(self.standard_path)
         self.path_out = self.standard_path
 
