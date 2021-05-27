@@ -112,9 +112,9 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
         self.logbook.append(strftime("%Y_%m_%d %H:%M:%S ", localtime()) + path_lists)
         root.withdraw()
 
-        path_out_reconstructed = path_out + '/Reconstructed_Preview'
-        path_out_reconstructed_full = path_out + '/Reconstructed_Volume'
-        path_out_normalized = path_out + '/Normalized_Projections'
+        path_out_reconstructed = path_out + '/Prev'
+        path_out_reconstructed_full = path_out + '/Vol'
+        path_out_normalized = path_out + '/Norm'
         path_out_changes = path_out + '/Changes'
 
         print(path_out_reconstructed)
