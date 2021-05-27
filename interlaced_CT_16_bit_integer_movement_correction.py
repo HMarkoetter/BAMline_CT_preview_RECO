@@ -135,14 +135,14 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                 os.mkdir(path_out_normalized)
         if os.path.isdir(path_out_changes) is False:
             os.mkdir(path_out_changes)
-        if os.path.isdir(path_out_changes + '/Zero_Deg') is False:
-            os.mkdir(path_out_changes + '/Zero_Deg')
-        if os.path.isdir(path_out_changes + '/Zero_Deg_divided') is False:
-            os.mkdir(path_out_changes + '/Zero_Deg_divided')
-        if os.path.isdir(path_out_changes + '/Paulchen_Normalized') is False:
-            os.mkdir(path_out_changes + '/Paulchen_Normalized')
-        if os.path.isdir(path_out_changes + '/Paulchen_Divided') is False:
-            os.mkdir(path_out_changes + '/Paulchen_Divided')
+        if os.path.isdir(path_out_changes + '/Zero') is False:
+            os.mkdir(path_out_changes + '/Zero')
+        if os.path.isdir(path_out_changes + '/Zero_div') is False:
+            os.mkdir(path_out_changes + '/Zero_div')
+        if os.path.isdir(path_out_changes + '/Pl_Norm') is False:
+            os.mkdir(path_out_changes + '/Pl_Norm')
+        if os.path.isdir(path_out_changes + '/Pl_Div') is False:
+            os.mkdir(path_out_changes + '/Pl_Div')
 
 
         first = 1   # HIER ERSTE DATEI DES SCANS EINTRAGEN ; BEI MEHREREN SCANS WICHTIG
@@ -240,21 +240,21 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
         im_090_normalized = numpy.divide(proj_090_sub, FF_sub)
         im_180_normalized = numpy.divide(proj_180_sub, FF_sub)
 
-        filename_b_000 = path_out_changes + '/Paulchen_Normalized' + namepart + 'beginning_000_deg' + filetype
+        filename_b_000 = path_out_changes + '/Pl_Norm' + namepart + 'bg_000' + filetype
         print('Beginning Projection at 0°:', filename_b_000)
         self.logbook.append(
             strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Beginning Projection at 0°:' + filename_b_000)
         img = Image.fromarray(im_000_normalized)
         img.save(filename_b_000)
 
-        filename_b_090 = path_out_changes + '/Paulchen_Normalized' + namepart + 'beginning_090_deg' + filetype
+        filename_b_090 = path_out_changes + '/Pl_Norm' + namepart + 'bg_090' + filetype
         print('Beginning Projection at 90°:', filename_b_090)
         self.logbook.append(
             strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Beginning Projection at 90°:' + filename_b_090)
         img = Image.fromarray(im_090_normalized)
         img.save(filename_b_090)
 
-        filename_b_180 = path_out_changes + '/Paulchen_Normalized' + namepart + 'beginning_180_deg' + filetype
+        filename_b_180 = path_out_changes + '/Pl_Norm' + namepart + 'bg_180' + filetype
         print('Beginning Projection at 180°:', filename_b_180)
         self.logbook.append(
             strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Beginning Projection at 180°:' + filename_b_180)
@@ -359,8 +359,8 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                 # ZERO DEG CHECK OR SKIP
                 if zero_deg_proj == 2:
                     filename_zero_load = path_in + namepart + str(n).zfill(4) + filetype
-                    filename_zero = path_out_changes + '/Zero_Deg' + namepart + str(i - first).zfill(4) + filetype
-                    filename_zero_divided = path_out_changes + '/Zero_Deg_divided' + namepart + str(i - first).zfill(4) + filetype
+                    filename_zero = path_out_changes + '/Zero' + namepart + str(i - first).zfill(4) + filetype
+                    filename_zero_divided = path_out_changes + '/Zero_div' + namepart + str(i - first).zfill(4) + filetype
 
                     print('Loading Zero Degree Projection ', filename_zero_load)
                     self.logbook.append(strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Loading Zero Degree Projection ' + filename_zero_load)
@@ -1020,36 +1020,36 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
             div_090_normalized = numpy.divide(eim_090_normalized, im_090_normalized)
             div_180_normalized = numpy.divide(eim_180_normalized, im_180_normalized)
 
-            filename_e_000 = path_out_changes + '/Paulchen_Normalized' + namepart + 'end_000_deg' + filetype
+            filename_e_000 = path_out_changes + '/Pl_Norm' + namepart + 'end_000' + filetype
             print('End Projection at 0°:', filename_e_000)
             self.logbook.append(strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'End Projection at 0°:' + filename_e_000)
             img = Image.fromarray(eim_000_normalized)
             img.save(filename_e_000)
-            filename_e_090 = path_out_changes + '/Paulchen_Normalized' + namepart + 'end_090_deg' + filetype
+            filename_e_090 = path_out_changes + '/Pl_Norm' + namepart + 'end_090' + filetype
             print('End Projection at 90°:', filename_e_090)
             self.logbook.append(strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'End Projection at 90°:' + filename_e_090)
             img = Image.fromarray(eim_090_normalized)
             img.save(filename_e_090)
-            filename_e_180 = path_out_changes + '/Paulchen_Normalized' + namepart + 'end_180_deg' + filetype
+            filename_e_180 = path_out_changes + '/Pl_Norm' + namepart + 'end_180' + filetype
             print('End Projection at 180°:', filename_e_180)
             self.logbook.append(
                 strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'End Projection at 180°:' + filename_e_180)
             img = Image.fromarray(eim_180_normalized)
             img.save(filename_e_180)
 
-            filename_000 = path_out_changes + '/Paulchen_Divided' + namepart + 'div_000_deg' + filetype
+            filename_000 = path_out_changes + '/Pl_Div' + namepart + 'div_000' + filetype
             print('Difference in Projection at 0°:', filename_000)
             self.logbook.append(
                 strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Difference in Projection at 0°:' + filename_000)
             img = Image.fromarray(div_000_normalized)
             img.save(filename_000)
-            filename_090 = path_out_changes + '/Paulchen_Divided' + namepart + 'div_090_deg' + filetype
+            filename_090 = path_out_changes + '/Pl_Div' + namepart + 'div_090' + filetype
             print('Difference in Projection at 90°:', filename_090)
             self.logbook.append(
                 strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Difference in Projection at 90°:' + filename_090)
             img = Image.fromarray(div_090_normalized)
             img.save(filename_090)
-            filename_180 = path_out_changes + '/Paulchen_Divided' + namepart + 'div_180_deg' + filetype
+            filename_180 = path_out_changes + '/Pl_Div' + namepart + 'div_180' + filetype
             print('Difference in Projection at 180°:', filename_180)
             self.logbook.append(
                 strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Difference in Projection at 180°:' + filename_180)
