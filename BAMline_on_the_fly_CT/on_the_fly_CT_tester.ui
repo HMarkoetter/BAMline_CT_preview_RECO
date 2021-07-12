@@ -401,8 +401,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>2022</width>
-         <height>2022</height>
+         <width>4022</width>
+         <height>4022</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_10">
@@ -416,8 +416,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>2000</width>
-            <height>2000</height>
+            <width>4000</width>
+            <height>4000</height>
            </size>
           </property>
           <property name="maximumSize">
