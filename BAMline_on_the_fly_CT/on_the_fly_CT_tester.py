@@ -40,7 +40,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
         #self.filter_list.currentIndexChanged.connect(self.reconstruct)
 
-        self.block_size = 8
+        self.block_size = 128
         self.extend_FOV = 0.05
         #print('on_the_fly_CT_tester.py init')
 
@@ -133,7 +133,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 break
 
         print(last)
-        self.A = numpy.zeros((last - self.counter + 1, reference.size[1], reference.size[0]), dtype=float)
+        self.A = numpy.zeros((last - self.counter + 1, reference.size[1], reference.size[0]), dtype=numpy.uint16)
 
         i = self.counter
         while i < last:
@@ -148,16 +148,23 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             proj = Image.open(filename)
             proj_ = numpy.array(proj)
             proj_norm = numpy.divide(proj_, FFavg)
-
+            proj_norm = numpy.clip(proj_norm, 0.03, 4)
+            proj_norm = proj_norm * 16000
+            #print('norm min vs max', numpy.amin(proj_norm), numpy.amax(proj_norm))
+            proj_norm = numpy.nan_to_num(proj_norm, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
+            #print('norm min vs max', numpy.amin(proj_norm), numpy.amax(proj_norm))
+            #proj_norm_16 = proj_norm.astype(numpy.uint16)
+            proj_norm_16 = numpy.uint16(proj_norm)
+            #print('norm min vs max', numpy.amin(proj_norm_16), numpy.amax(proj_norm_16))
             #print('A', self.A.shape)
             #print('proj_', proj_.shape)
 
-            self.A[i - self.counter,:,:] = proj_norm
+            self.A[i - self.counter,:,:] = proj_norm_16
 
             i = i + 1
 
 
-        print('A',self.A.shape)
+        print('A',self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
         #self.A = numpy.transpose(self.A, (0,1,2)) * 16000
 
         self.slice_number.setMaximum(reference.size[1]-1)
@@ -226,6 +233,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
         extended_sinos = tomopy.minus_log(extended_sinos)
+        extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
         extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
 
         slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
@@ -299,6 +307,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             extended_sinos = self.A[:, i * self.block_size: (i + 1) * self.block_size, :]
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
+            extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
+
             extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
 
             slices = tomopy.recon(extended_sinos, new_list,
