@@ -31,13 +31,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushLoad.clicked.connect(self.load)
         self.pushReconstruct.clicked.connect(self.reconstruct)
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
-        self.slice_number.valueChanged.connect(self.reconstruct)
-        self.COR.valueChanged.connect(self.reconstruct)
-        self.Offset_Angle.valueChanged.connect(self.reconstruct)
-        self.brightness.valueChanged.connect(self.reconstruct)
-        self.speed_W.valueChanged.connect(self.reconstruct)
-        self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
-        self.filter_list.currentIndexChanged.connect(self.reconstruct)
+        #self.slice_number.valueChanged.connect(self.reconstruct)
+        #self.COR.valueChanged.connect(self.reconstruct)
+        #self.Offset_Angle.valueChanged.connect(self.reconstruct)
+        #self.brightness.valueChanged.connect(self.reconstruct)
+        #self.speed_W.valueChanged.connect(self.reconstruct)
+        #self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
+        #self.filter_list.currentIndexChanged.connect(self.reconstruct)
 
         self.block_size = 256
         self.extend_FOV = 0.5
