@@ -31,6 +31,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushLoad.clicked.connect(self.load)
         self.pushReconstruct.clicked.connect(self.reconstruct)
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
+        self.push_Crop_volume.clicked.connect(self.crop_volume)
         #self.slice_number.valueChanged.connect(self.reconstruct)
         #self.COR.valueChanged.connect(self.reconstruct)
         #self.Offset_Angle.valueChanged.connect(self.reconstruct)
@@ -53,7 +54,58 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.brightness.setEnabled(False)
         self.speed_W.setEnabled(False)
 
-        path_klick_raw = QtGui.QFileDialog.getOpenFileName(self, 'Select one file of the normalized projections, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
+
+        path_klick_FF = QtGui.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
+        self.path_klickFF = path_klick_FF[0]
+        print(self.path_klickFF)
+
+        htapFF = self.path_klickFF[::-1]
+        self.path_inFF = self.path_klickFF[0: len(htapFF) - htapFF.find('/') - 1: 1]
+        self.namepartFF = self.path_klickFF[len(htapFF) - htapFF.find('/') - 1: len(htapFF) - htapFF.find('.') - 5: 1]
+        self.counterFF = int(self.path_klickFF[len(htapFF) - htapFF.find('.') - 5: len(htapFF) - htapFF.find('.') - 1:1])
+        self.filetypeFF = self.path_klickFF[len(htapFF) - htapFF.find('.') - 1: len(htapFF):1]
+
+        referenceFF = Image.open(self.path_klickFF)
+        self.full_sizeFF = referenceFF.size[0]
+        print(self.full_sizeFF)
+
+        for i in range(self.counterFF,999999):
+            print(i)
+            lastFF = i
+            filenameFF = self.path_inFF + self.namepartFF + str(i).zfill(4) + self.filetypeFF
+
+            if os.path.exists(filenameFF) != True:
+                break
+
+        print(lastFF)
+        self.FF = numpy.zeros((lastFF - self.counterFF + 1, referenceFF.size[1], referenceFF.size[0]), dtype=float)
+
+        i = self.counterFF
+        while i < lastFF:
+            # progressBar
+            self.progressBar.setValue((i + 1) * 100 / lastFF)
+
+            filenameFF = self.path_inFF + self.namepartFF + str(i).zfill(4) + self.filetypeFF
+
+            QtWidgets.QApplication.processEvents()
+            print('LoadingFF ', filenameFF)
+            projFF = Image.open(filenameFF)
+            proj_FF = numpy.array(projFF)
+
+            # print('A', self.A.shape)
+            # print('proj_', proj_.shape)
+
+            self.FF[i - self.counterFF, :, :] = proj_FF
+
+            i = i + 1
+
+        FFavg = numpy.mean(self.FF, axis=0)
+
+
+
+
+
+        path_klick_raw = QtGui.QFileDialog.getOpenFileName(self, 'Select first projection, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
         self.path_klick = path_klick_raw[0]
         print(self.path_klick)
 
@@ -62,9 +114,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
         self.counter = int(self.path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1])
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
-        self.path_out = self.path_in + '/on_the_fly_CT_reco_test'
-        if os.path.isdir(self.path_out) is False:
-            os.mkdir(self.path_out)
+        #self.path_out = self.path_in + '/on_the_fly_CT_reco_test'
+        #if os.path.isdir(self.path_out) is False:
+        #    os.mkdir(self.path_out)
 
         reference = Image.open(self.path_klick)
         self.full_size = reference.size[0]
@@ -95,11 +147,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('Loading ', filename)
             proj = Image.open(filename)
             proj_ = numpy.array(proj)
+            proj_norm = numpy.divide(proj_, FFavg)
 
             #print('A', self.A.shape)
             #print('proj_', proj_.shape)
 
-            self.A[i - self.counter,:,:] = proj_
+            self.A[i - self.counter,:,:] = proj_norm
 
             i = i + 1
 
@@ -113,6 +166,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.COR.setValue(round(reference.size[0]/2))
 
+        self.spinBox_first.setValue(0)
+        self.spinBox_last.setValue(reference.size[1]-1)
+
+
         self.pushLoad.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
         self.pushReconstruct_all.setEnabled(True)
@@ -121,8 +178,19 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.brightness.setEnabled(True)
         self.Offset_Angle.setEnabled(True)
         self.speed_W.setEnabled(True)
+        self.spinBox_first.setEnabled(True)
+        self.spinBox_last.setEnabled(True)
+        self.push_Crop_volume.setEnabled(True)
 
 
+
+    def crop_volume(self):
+        self.A = self.A[:,self.spinBox_first.value():self.spinBox_last.value()+1,:]
+        self.spinBox_first.setValue(0)
+        self.spinBox_last.setValue(self.A.shape[1]-1)
+        self.slice_number.setMaximum(self.A.shape[1]-1)
+        print('Volume Cropped')
+        print('A', self.A.shape)
 
     def reconstruct(self):
         self.pushLoad.setEnabled(False)
@@ -141,7 +209,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.number_of_projections = self.A.shape[0]
 
         new_list = (numpy.arange(self.number_of_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
-        #print(new_list)
         print(new_list.shape)
 
         self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
@@ -149,13 +216,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_projections)
-        #print(center_list)
         print(len(center_list))
 
         transposed_sinos = numpy.zeros((self.number_of_projections, 1, self.full_size), dtype=float)
 
         transposed_sinos[:,0,:] = self.A[:, self.slice_number.value(),:]
-        #transposed_sinos[:,1,:] = self.A[:, self.slice_number.value(),:]
 
         print('transposed_sinos_shape', transposed_sinos.shape)
 
@@ -223,6 +288,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_projections)
         #print(center_list)
         print(len(center_list))
+
+
 
         i = 0
         while (i < math.ceil(self.A.shape[1] / self.block_size)):
