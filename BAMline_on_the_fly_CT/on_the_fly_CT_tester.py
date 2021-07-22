@@ -1,19 +1,16 @@
+# On-the-fly-CT Tester
+# version 2021.07.22 c
 
 #imports
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUiType
-import tkinter.filedialog
 from PIL import Image
 import tomopy
 import math
 import time
 import os
-import scipy
-from scipy import ndimage
-from scipy import stats
-from scipy import signal
 import qimage2ndarray
 import pyqtgraph as pg
 
@@ -42,8 +39,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.block_size = 128
         self.extend_FOV = 0.05
-        #print('on_the_fly_CT_tester.py init')
-
+        self.DF = 100
 
 
     def load(self):
@@ -100,9 +96,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             i = i + 1
 
         FFavg = numpy.mean(self.FF, axis=0)
-
-
-
+        FFavg_df = FFavg - self.DF
 
 
         path_klick_raw = QtGui.QFileDialog.getOpenFileName(self, 'Select first projection, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
@@ -114,16 +108,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
         self.counter = int(self.path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1])
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
-        #self.path_out = self.path_in + '/on_the_fly_CT_reco_test'
-        #if os.path.isdir(self.path_out) is False:
-        #    os.mkdir(self.path_out)
 
         reference = Image.open(self.path_klick)
         self.full_size = reference.size[0]
         print(self.full_size)
 
         # LOADING FROM DISK #
-        # determine last image #
         for i in range(self.counter,999999):
             print(i)
             last = i
@@ -138,7 +128,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         i = self.counter
         while i < last:
 
-            #progressBar
             self.progressBar.setValue((i + 1) * 100 / last)
 
             filename = self.path_in + self.namepart + str(i).zfill(4) + self.filetype
@@ -147,17 +136,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('Loading ', filename)
             proj = Image.open(filename)
             proj_ = numpy.array(proj)
-            proj_norm = numpy.divide(proj_, FFavg)
+            proj_df = proj_ - self.DF
+            proj_norm = numpy.divide(proj_df, FFavg_df)
             proj_norm = numpy.clip(proj_norm, 0.03, 4)
             proj_norm = proj_norm * 16000
-            #print('norm min vs max', numpy.amin(proj_norm), numpy.amax(proj_norm))
             proj_norm = numpy.nan_to_num(proj_norm, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
-            #print('norm min vs max', numpy.amin(proj_norm), numpy.amax(proj_norm))
-            #proj_norm_16 = proj_norm.astype(numpy.uint16)
             proj_norm_16 = numpy.uint16(proj_norm)
-            #print('norm min vs max', numpy.amin(proj_norm_16), numpy.amax(proj_norm_16))
-            #print('A', self.A.shape)
-            #print('proj_', proj_.shape)
 
             self.A[i - self.counter,:,:] = proj_norm_16
 
@@ -165,7 +149,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
         print('A',self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
-        #self.A = numpy.transpose(self.A, (0,1,2)) * 16000
 
         self.slice_number.setMaximum(reference.size[1]-1)
         self.slice_number.setMinimum(0)
