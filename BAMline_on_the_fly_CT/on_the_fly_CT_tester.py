@@ -199,6 +199,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('Volume Cropped')
         print('A', self.A.shape)
 
+
+
     def reconstruct(self):
         self.pushLoad.setEnabled(False)
         self.pushReconstruct.setEnabled(False)
@@ -215,20 +217,25 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
 
-        new_list = (numpy.arange(self.number_of_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
-        print(new_list.shape)
-
         self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
 
-        center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_projections)
+        if self.number_of_projections * self.speed_W.value() >= 360:
+            self.number_of_used_projections = round(360 / self.speed_W.value())
+        else:
+            print('smaller than 2 Pi')
+            self.number_of_used_projections = round(180 / self.speed_W.value())
+        print('number of used projections', self.number_of_used_projections)
+
+        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
+        print(new_list.shape)
+
+        center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
 
-        transposed_sinos = numpy.zeros((self.number_of_projections, 1, self.full_size), dtype=float)
-
-        transposed_sinos[:,0,:] = self.A[:, self.slice_number.value(),:]
-
+        transposed_sinos = numpy.zeros((self.number_of_used_projections, 1, self.full_size), dtype=float)
+        transposed_sinos[:,0,:] = self.A[0:self.number_of_used_projections, self.slice_number.value(),:]
         print('transposed_sinos_shape', transposed_sinos.shape)
 
         extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
@@ -284,27 +291,29 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('Nr of projections', self.A.shape[0])
         print('Nr of slices', self.A.shape[1])
 
-
-
-        new_list = (numpy.arange(self.number_of_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
-        #print(new_list)
-        print(new_list.shape)
-
         self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
-        center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_projections)
-        #print(center_list)
+
+        if self.number_of_projections * self.speed_W.value() >= 360:
+            self.number_of_used_projections = round(360 / self.speed_W.value())
+        else:
+            print('smaller than 2 Pi')
+            self.number_of_used_projections = round(180 / self.speed_W.value())
+        print('number of used projections', self.number_of_used_projections)
+
+        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
+        print(new_list.shape)
+
+        center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
-
-
 
         i = 0
         while (i < math.ceil(self.A.shape[1] / self.block_size)):
 
             print('Reconstructing block', i + 1, 'of', math.ceil(self.A.shape[1] / self.block_size))
 
-            extended_sinos = self.A[:, i * self.block_size: (i + 1) * self.block_size, :]
+            extended_sinos = self.A[0:self.number_of_used_projections, i * self.block_size: (i + 1) * self.block_size, :]
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
             extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
