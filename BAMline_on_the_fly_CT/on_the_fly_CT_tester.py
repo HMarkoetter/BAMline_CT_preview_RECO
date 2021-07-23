@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.07.22 c
+# version 2021.07.23 d
 
 #imports
 import numpy
@@ -12,6 +12,7 @@ import math
 import time
 import os
 import qimage2ndarray
+from scipy.ndimage.filters import gaussian_filter, median_filter
 import pyqtgraph as pg
 
 
@@ -39,7 +40,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.block_size = 128
         self.extend_FOV = 0.05
-        self.DF = 100
 
 
     def load(self):
@@ -49,6 +49,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.COR.setEnabled(False)
         self.brightness.setEnabled(False)
         self.speed_W.setEnabled(False)
+        #self.spinBox_ringradius.setEnabled(False)
+        #self.spinBox_DF.setEnabled(False)
 
 
         path_klick_FF = QtGui.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
@@ -96,7 +98,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             i = i + 1
 
         FFavg = numpy.mean(self.FF, axis=0)
-        FFavg_df = FFavg - self.DF
+        FFavg_df = FFavg - self.spinBox_DF.value()
 
 
         path_klick_raw = QtGui.QFileDialog.getOpenFileName(self, 'Select first projection, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
@@ -113,6 +115,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.full_size = reference.size[0]
         print(self.full_size)
 
+
+
         # LOADING FROM DISK #
         for i in range(self.counter,999999):
             print(i)
@@ -125,6 +129,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print(last)
         self.A = numpy.zeros((last - self.counter + 1, reference.size[1], reference.size[0]), dtype=numpy.uint16)
 
+
         i = self.counter
         while i < last:
 
@@ -136,7 +141,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('Loading ', filename)
             proj = Image.open(filename)
             proj_ = numpy.array(proj)
-            proj_df = proj_ - self.DF
+            proj_df = proj_ - self.spinBox_DF.value()
             proj_norm = numpy.divide(proj_df, FFavg_df)
             proj_norm = numpy.clip(proj_norm, 0.03, 4)
             proj_norm = proj_norm * 16000
@@ -145,8 +150,65 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             self.A[i - self.counter,:,:] = proj_norm_16
 
+            if self.spinBox_ringradius.value() != 0:
+
+                #print('Radius for Ring reduction: ', self.spinBox_ringradius.value())
+
+                if i == self.counter:
+                    #print('i == self.counter')
+                    self.proj_sum = numpy.array(proj_norm_16, dtype=numpy.single)
+                    #self.proj_sum = proj_norm_16
+                else:
+                    #print('i != self.counter')
+                    self.proj_sum = self.proj_sum + proj_norm_16
+
             i = i + 1
 
+        print('A', self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
+
+        if self.spinBox_ringradius.value() != 0:
+            print('proj_sum dimensions', self.proj_sum.shape)
+            proj_sum_filtered = median_filter(self.proj_sum, size = self.spinBox_ringradius.value())
+            correction_map = numpy.divide(self.proj_sum, proj_sum_filtered)
+            correction_map = numpy.clip(correction_map, 0.9, 1.1)
+
+            print('correction_map', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
+
+
+            filename_map = self.path_in + self.namepart + 'map' + self.filetype
+            filename_sum = self.path_in + self.namepart + 'sum' + self.filetype
+            filename_sum_fil = self.path_in + self.namepart + 'sum_fil' + self.filetype
+            filename_A1 = self.path_in + self.namepart + 'A1' + self.filetype
+            filename_A1b = self.path_in + self.namepart + 'A1b' + self.filetype
+
+            print('Writing map:', filename_map)
+            img = Image.fromarray(correction_map)
+            img.save(filename_map)
+
+            print('Writing sum:', filename_sum)
+            img = Image.fromarray(self.proj_sum)
+            img.save(filename_sum)
+
+            print('Writing sum_fil:', filename_sum_fil)
+            img = Image.fromarray(proj_sum_filtered)
+            img.save(filename_sum_fil)
+
+            print('Writing A1:', filename_A1)
+            img = Image.fromarray(self.A[1,:,:])
+            img.save(filename_A1)
+
+
+
+            i=0
+            while i < self.A.shape[0]:
+                self.A[i, :, :] = numpy.uint16(numpy.divide(self.A[i, :, :], correction_map))
+                self.progressBar.setValue((i + 1) * 100 / self.A.shape[0])
+                QtWidgets.QApplication.processEvents()
+                i = i+1
+
+            print('Writing A1b:', filename_A1b)
+            img = Image.fromarray(self.A[1,:,:])
+            img.save(filename_A1b)
 
         print('A',self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
 
