@@ -267,10 +267,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('extend_FOV ', self.extend_FOV)
 
 
-        if self.number_of_projections * self.speed_W.value() >= 360:
+        if self.number_of_projections * self.speed_W.value() >= 270:
             self.number_of_used_projections = round(360 / self.speed_W.value())
         else:
-            print('smaller than 2 Pi')
+            print('smaller than 3/2 Pi')
             self.number_of_used_projections = round(180 / self.speed_W.value())
         print('number of used projections', self.number_of_used_projections)
 
@@ -342,10 +342,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('extend_FOV ', self.extend_FOV)
 
 
-        if self.number_of_projections * self.speed_W.value() >= 360:
+        if self.number_of_projections * self.speed_W.value() >= 270:
             self.number_of_used_projections = round(360 / self.speed_W.value())
         else:
-            print('smaller than 2 Pi')
+            print('smaller than 3/2 Pi')
             self.number_of_used_projections = round(180 / self.speed_W.value())
         print('number of used projections', self.number_of_used_projections)
 
