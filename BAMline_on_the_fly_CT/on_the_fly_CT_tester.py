@@ -262,7 +262,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
 
-        self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
+        #self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
+        self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
 
@@ -290,7 +291,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
-        #slices = slices[:,round(self.extend_FOV * self.full_size) : -round(self.extend_FOV * self.full_size) , round(self.extend_FOV * self.full_size) : -round(self.extend_FOV * self.full_size)]
+        slices = slices[:,round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2) , round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2)]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
         original_reconstruction = slices[0, :, :]
         print(numpy.amin(original_reconstruction))
@@ -336,7 +337,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('Nr of projections', self.A.shape[0])
         print('Nr of slices', self.A.shape[1])
 
-        self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
+        #self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
+        self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
 
@@ -368,7 +370,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             slices = tomopy.recon(extended_sinos, new_list,
                                   center=center_list, algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
-            #slices = slices[:, round(self.extend_FOV * self.full_size): -round(self.extend_FOV * self.full_size), round(self.extend_FOV * self.full_size): -round(self.extend_FOV * self.full_size)]
+            slices = slices[:, round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2), round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2)]
             slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
 
             if self.radioButton_16bit_integer.isChecked() == True:
