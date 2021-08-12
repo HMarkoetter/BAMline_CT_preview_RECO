@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.08.11 b
+# version 2021.08.12 a
 
 #imports
 import numpy
@@ -280,8 +280,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
 
-        transposed_sinos = numpy.zeros((self.number_of_used_projections, 1, self.full_size), dtype=float)
-        transposed_sinos[:,0,:] = self.A[0:self.number_of_used_projections, self.slice_number.value(),:]
+        transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.A.shape[0]), 1, self.full_size), dtype=float)
+        transposed_sinos[:,0,:] = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), self.slice_number.value(),:]
         print('transposed_sinos_shape', transposed_sinos.shape)
 
         extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
@@ -360,7 +360,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             print('Reconstructing block', i + 1, 'of', math.ceil(self.A.shape[1] / self.block_size))
 
-            extended_sinos = self.A[0:self.number_of_used_projections, i * self.block_size: (i + 1) * self.block_size, :]
+            extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
             extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
