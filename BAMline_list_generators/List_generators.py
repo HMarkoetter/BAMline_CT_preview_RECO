@@ -449,7 +449,8 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
     def get_FF_pos_3(self):
         self.FF_pos_3.setValue(caget('PEGAS:miocb0102001.RBV'))
 
-"""
+
+
     #def window(self):
         app = QApplication(sys.argv)
         win = QWidget()
@@ -475,7 +476,6 @@ class List_generators(Ui_GeneratorWindow, QGeneratorWindow):
 
     #def msgButtonClick(i):
         print("Button clicked is:", i.text())
-"""
 
 
     def save_files(self):
