@@ -289,8 +289,18 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
         extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
 
-        slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
+
+        #slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
+        #                          filter_name=self.filter_list.currentText())
+
+        if self.algorithm_list.currentText() == 'FBP_CUDA':
+            options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
+            slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra, options=options)
+
+        else:
+            slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
+
         slices = slices[:,round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2) , round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2)]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
         original_reconstruction = slices[0, :, :]
