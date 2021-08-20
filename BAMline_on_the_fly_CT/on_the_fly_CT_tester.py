@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.08.20 a
+# version 2021.08.20 b
 
 #imports
 import numpy
@@ -262,7 +262,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
 
-        #self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
@@ -289,14 +288,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
         extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
 
-
-        #slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
-        #                          filter_name=self.filter_list.currentText())
-
         if self.algorithm_list.currentText() == 'FBP_CUDA':
             options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
             slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra, options=options)
-
         else:
             slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
@@ -347,7 +341,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('Nr of projections', self.A.shape[0])
         print('Nr of slices', self.A.shape[1])
 
-        #self.extend_FOV = (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
@@ -377,9 +370,15 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
 
-            slices = tomopy.recon(extended_sinos, new_list,
-                                  center=center_list, algorithm=self.algorithm_list.currentText(),
-                                  filter_name=self.filter_list.currentText())
+            if self.algorithm_list.currentText() == 'FBP_CUDA':
+                options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra,
+                                      options=options)
+            else:
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list,
+                                      algorithm=self.algorithm_list.currentText(),
+                                      filter_name=self.filter_list.currentText())
+
             slices = slices[:, round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2), round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2)]
             slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
 
