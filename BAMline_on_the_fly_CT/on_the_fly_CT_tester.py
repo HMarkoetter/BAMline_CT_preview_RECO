@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.08.20 b
+# version 2021.08.24 a
 
 #imports
 import numpy
@@ -53,7 +53,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.spinBox_DF.setEnabled(False)
 
 
-        path_klick_FF = QtGui.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
+        path_klick_FF = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
         self.path_klickFF = path_klick_FF[0]
         print(self.path_klickFF)
 
@@ -101,7 +101,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         FFavg_df = FFavg - self.spinBox_DF.value()
 
 
-        path_klick_raw = QtGui.QFileDialog.getOpenFileName(self, 'Select first projection, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
+        path_klick_raw = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first projection, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
         self.path_klick = path_klick_raw[0]
         print(self.path_klick)
 
@@ -333,7 +333,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         QtWidgets.QApplication.processEvents()
         print('def reconstruct complete volume')
 
-        self.path_out_reconstructed_full = QtGui.QFileDialog.getExistingDirectory(self, 'Select folder fpr reconstructions.', self.path_klick)
+        self.path_out_reconstructed_full = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder fpr reconstructions.', self.path_klick)
 
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
