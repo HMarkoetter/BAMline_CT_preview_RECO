@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.08.24 a
+# version 2021.09.23 a
 
 #imports
 import numpy
@@ -13,7 +13,7 @@ import time
 import os
 import qimage2ndarray
 from scipy.ndimage.filters import gaussian_filter, median_filter
-import pyqtgraph as pg
+#import pyqtgraph as pg
 
 
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_tester.ui')  # GUI vom Hauptfenster
