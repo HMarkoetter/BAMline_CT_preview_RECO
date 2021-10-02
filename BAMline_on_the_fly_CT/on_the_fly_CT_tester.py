@@ -291,11 +291,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         extended_sinos = tomopy.minus_log(extended_sinos)
         extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
         extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
-        extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=1,
-                                                 dist=self.doubleSpinBox_distance.value(),
-                                                 energy=self.doubleSpinBox_Energy.value(),
-                                                 alpha=self.doubleSpinBox_alpha.value(), pad=True,
-                                                 ncore=self.no_of_cores, nchunk=None)
+        if self.checkBox_phase_2.isChecked() == True:
+            extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
         if self.algorithm_list.currentText() == 'FBP_CUDA':
             options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
@@ -380,11 +377,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
 
             extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
-            extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=1,
-                                                              dist=self.doubleSpinBox_distance.value(),
-                                                              energy=self.doubleSpinBox_Energy.value(),
-                                                              alpha=self.doubleSpinBox_alpha.value(), pad=True,
-                                                              ncore=self.no_of_cores, nchunk=None)
+            if self.checkBox_phase_2.isChecked() == True:
+                extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
             if self.algorithm_list.currentText() == 'FBP_CUDA':
                 options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
