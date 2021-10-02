@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.09.23 a
+# version 2021.10.02 a
 
 #imports
 import numpy
@@ -101,15 +101,19 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         FFavg_df = FFavg - self.spinBox_DF.value()
 
 
-        path_klick_raw = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first projection, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
+        path_klick_raw = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first projection, please.', self.path_klickFF)
         self.path_klick = path_klick_raw[0]
         print(self.path_klick)
 
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
+        ni_htap = self.path_in[::-1]
+        self.folder_name = self.path_klick[len(htap) - htap.find('/') - ni_htap.find('/') -1 :len(htap) - htap.find('/') - 1 : 1]
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
         self.counter = int(self.path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1])
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
+        #print(self.folder_name)
+        self.Sample.setText(self.path_in)
 
         reference = Image.open(self.path_klick)
         self.full_size = reference.size[0]
@@ -333,7 +337,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         QtWidgets.QApplication.processEvents()
         print('def reconstruct complete volume')
 
-        self.path_out_reconstructed_full = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder fpr reconstructions.', self.path_klick)
+        self.path_out_reconstructed_ask = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder for reconstructions.', self.path_klick)
+        self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name
+        os.mkdir(self.path_out_reconstructed_full)
 
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
