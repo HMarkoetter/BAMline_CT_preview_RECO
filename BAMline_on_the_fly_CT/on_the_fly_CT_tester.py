@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.10.07 a
+# version 2021.10.07 b
 
 #imports
 import numpy
@@ -179,30 +179,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('correction_map', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
 
 
-            filename_map = self.path_in + self.namepart + 'map' + self.filetype
-            filename_sum = self.path_in + self.namepart + 'sum' + self.filetype
-            filename_sum_fil = self.path_in + self.namepart + 'sum_fil' + self.filetype
-            filename_A1 = self.path_in + self.namepart + 'A1' + self.filetype
-            filename_A1b = self.path_in + self.namepart + 'A1b' + self.filetype
-
-            print('Writing map:', filename_map)
-            img = Image.fromarray(correction_map)
-            img.save(filename_map)
-
-            print('Writing sum:', filename_sum)
-            img = Image.fromarray(self.proj_sum)
-            img.save(filename_sum)
-
-            print('Writing sum_fil:', filename_sum_fil)
-            img = Image.fromarray(proj_sum_filtered)
-            img.save(filename_sum_fil)
-
-            print('Writing A1:', filename_A1)
-            img = Image.fromarray(self.A[1,:,:])
-            img.save(filename_A1)
-
-
-
             i=0
             while i < self.A.shape[0]:
                 self.A[i, :, :] = numpy.uint16(numpy.divide(self.A[i, :, :], correction_map))
@@ -210,9 +186,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 QtWidgets.QApplication.processEvents()
                 i = i+1
 
-            print('Writing A1b:', filename_A1b)
-            img = Image.fromarray(self.A[1,:,:])
-            img.save(filename_A1b)
 
         print('A',self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
 
