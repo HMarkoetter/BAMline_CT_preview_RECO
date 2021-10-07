@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.10.02 b
+# version 2021.10.02 c
 
 #imports
 import numpy
@@ -11,9 +11,9 @@ import tomopy
 import math
 import time
 import os
+import csv
 import qimage2ndarray
 from scipy.ndimage.filters import gaussian_filter, median_filter
-#import pyqtgraph as pg
 
 
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_tester.ui')  # GUI vom Hauptfenster
@@ -365,6 +365,28 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
+
+        file_name_parameter = self.path_out_reconstructed_full + '/parameter.csv'
+        with open(file_name_parameter, mode = 'w', newline='') as parameter_file:
+            csv_writer = csv.writer(parameter_file, delimiter = ' ', quotechar=' ')
+            csv_writer.writerow(['Path input                    ', self.path_in,' '])
+            csv_writer.writerow(['Path output                   ', self.path_out_reconstructed_full,' '])
+            csv_writer.writerow(['Number of used projections    ', str(self.number_of_used_projections),' '])
+            csv_writer.writerow(['Center of rotation            ', str(self.COR.value()), ' '])
+            csv_writer.writerow(['Dark field value              ', str(self.spinBox_DF.value()),' '])
+            csv_writer.writerow(['Ring handling radius          ', str(self.spinBox_ringradius.value()),' '])
+            csv_writer.writerow(['Rotation offset               ', str(self.Offset_Angle.value()), ' '])
+            csv_writer.writerow(['Rotation speed                ', str(self.speed_W.value()), ' '])
+            csv_writer.writerow(['Phase retrieval               ', str(self.checkBox_phase_2.isChecked()), ' '])
+            csv_writer.writerow(['Phase retrieval distance      ', str(self.doubleSpinBox_distance_2.value()), ' '])
+            csv_writer.writerow(['Phase retrieval energy        ', str(self.doubleSpinBox_Energy_2.value()), ' '])
+            csv_writer.writerow(['Phase retrieval alpha         ', str(self.doubleSpinBox_alpha_2.value()), ' '])
+            csv_writer.writerow(['16-bit                        ', str(self.radioButton_16bit_integer.isChecked()), ' '])
+            csv_writer.writerow(['16-bit integer low            ', str(self.int_low.value()), ' '])
+            csv_writer.writerow(['16-bit integer high           ', str(self.int_high.value()), ' '])
+            csv_writer.writerow(['Reconstruction algorithm      ', self.algorithm_list.currentText(), ' '])
+            csv_writer.writerow(['Reconstruction filter         ', self.filter_list.currentText(), ' '])
+
 
         i = 0
         while (i < math.ceil(self.A.shape[1] / self.block_size)):
