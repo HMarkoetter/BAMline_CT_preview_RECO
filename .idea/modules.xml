@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/BAMline_CT_preview_RECO.iml" filepath="$PROJECT_DIR$/.idea/BAMline_CT_preview_RECO.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../.idea/Python.iml" filepath="$PROJECT_DIR$/../.idea/Python.iml" />
     </modules>
   </component>
 </project>

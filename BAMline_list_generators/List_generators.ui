@@ -25,7 +25,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -191,6 +191,9 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="decimals">
+           <number>3</number>
+          </property>
           <property name="minimum">
            <double>-5000.000000000000000</double>
           </property>
@@ -348,6 +351,9 @@
             <weight>75</weight>
             <bold>true</bold>
            </font>
+          </property>
+          <property name="decimals">
+           <number>3</number>
           </property>
           <property name="minimum">
            <double>-5000.000000000000000</double>
@@ -745,6 +751,9 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="decimals">
+           <number>3</number>
+          </property>
           <property name="minimum">
            <double>-5000.000000000000000</double>
           </property>
@@ -796,6 +805,9 @@
             <weight>75</weight>
             <bold>true</bold>
            </font>
+          </property>
+          <property name="decimals">
+           <number>3</number>
           </property>
           <property name="minimum">
            <double>-5000.000000000000000</double>
@@ -1237,6 +1249,9 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="decimals">
+           <number>3</number>
+          </property>
           <property name="minimum">
            <double>-5000.000000000000000</double>
           </property>
@@ -1288,6 +1303,9 @@
             <weight>75</weight>
             <bold>true</bold>
            </font>
+          </property>
+          <property name="decimals">
+           <number>3</number>
           </property>
           <property name="minimum">
            <double>-5000.000000000000000</double>

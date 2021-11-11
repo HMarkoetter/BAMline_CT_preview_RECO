@@ -1,5 +1,5 @@
 # On-the-fly-CT Tester
-# version 2021.10.07 b
+version =  "Version 2021.11.02 a"
 
 #imports
 import numpy
@@ -40,6 +40,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.block_size = 128
         self.extend_FOV = 0.05
+
+    #def load_hdf5(self, path):
 
 
     def load(self):
@@ -349,7 +351,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             csv_writer.writerow(['Dark field value              ', str(self.spinBox_DF.value()),' '])
             csv_writer.writerow(['Ring handling radius          ', str(self.spinBox_ringradius.value()),' '])
             csv_writer.writerow(['Rotation offset               ', str(self.Offset_Angle.value()), ' '])
-            csv_writer.writerow(['Rotation speed                ', str(self.speed_W.value()), ' '])
+            csv_writer.writerow(['Rotation speed [°/image]      ', str(self.speed_W.value()), ' '])
             csv_writer.writerow(['Phase retrieval               ', str(self.checkBox_phase_2.isChecked()), ' '])
             csv_writer.writerow(['Phase retrieval distance      ', str(self.doubleSpinBox_distance_2.value()), ' '])
             csv_writer.writerow(['Phase retrieval energy        ', str(self.doubleSpinBox_Energy_2.value()), ' '])
@@ -359,6 +361,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             csv_writer.writerow(['16-bit integer high           ', str(self.int_high.value()), ' '])
             csv_writer.writerow(['Reconstruction algorithm      ', self.algorithm_list.currentText(), ' '])
             csv_writer.writerow(['Reconstruction filter         ', self.filter_list.currentText(), ' '])
+            csv_writer.writerow(['Software Version              ', version, ' '])
+            csv_writer.writerow(['binning                       ', '1x1x1', ' '])
 
 
         i = 0
