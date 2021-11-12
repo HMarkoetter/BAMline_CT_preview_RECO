@@ -28,6 +28,9 @@ if __name__ == "__main__":
     last_path = path_klick[len(htap) - ni_htap.find('/') +len(ni_htap) - len(htap) - 1: len(htap) - htap.find('/') - 1: 1]
     print('last_path', last_path)
     namepart = path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
+    counter = path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1]
+    counter = int(counter)
+    print('counter',counter)
     file_name_parameter = path_in + '/parameter.csv'
     print(file_name_parameter)
 
@@ -78,11 +81,11 @@ if __name__ == "__main__":
         os.mkdir(path_out)
         print('make dir: ', path_out)
 
-    index_COR_1 = 1
-    index_COR_2 = 3
-    FF_index = 4
-    index_pixel_size_1 = 1
-    index_pixel_size_2 = 4 + FF_sequence_size
+    index_COR_1 = counter
+    index_COR_2 = counter + 2
+    FF_index = counter + 3
+    index_pixel_size_1 = counter
+    index_pixel_size_2 = 3 + FF_sequence_size + counter
     COR = main_ask_once.doubleSpinBox_COR
     print('COR', COR)
     rotate = main_ask_once.doubleSpinBox_Tilt

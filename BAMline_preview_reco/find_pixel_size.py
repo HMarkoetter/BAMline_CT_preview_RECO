@@ -37,6 +37,7 @@ class PixelSize_finder(Ui_PixelSize_finderWindow, QPixelSize_finderWindow):
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
+        self.counter = self.path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1]
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
 
         file_name_parameter = self.path_in + '/parameter.csv'
@@ -73,7 +74,7 @@ class PixelSize_finder(Ui_PixelSize_finderWindow, QPixelSize_finderWindow):
         filename1 = self.path_in + self.namepart + str(self.index_pixel_size_1).zfill(4) + self.filetype
         filename2 = self.path_in + self.namepart + str(self.index_pixel_size_2).zfill(4) + self.filetype
         filename4 = self.path_in + self.namepart + str(self.FF_index).zfill(4) + self.filetype
-        self.filename_out = self.path_out + self.namepart + 'find_Pixe_Size' + self.filetype
+        self.filename_out = self.path_out + self.namepart + 'find_Pixel_Size' + self.filetype
 
         while os.path.exists(filename4) != True:
             time.sleep(3)

@@ -54,6 +54,7 @@ class COR_finder(Ui_COR_finderWindow, QCOR_finderWindow):
         htap = self.path_klick[::-1]
         path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
+        counter = self.path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1]
         filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
 
         filename1 = path_in + namepart + str(self.index_COR_1).zfill(4) + filetype

@@ -40,6 +40,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.block_size = 128
         self.extend_FOV = 0.05
+        self.crop_offset = 0
 
     #def load_hdf5(self, path):
 
@@ -217,6 +218,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
     def crop_volume(self):
         self.A = self.A[:,self.spinBox_first.value():self.spinBox_last.value()+1,:]
+        self.crop_offset = self.crop_offset + self.spinBox_first.value()
         self.spinBox_first.setValue(0)
         self.spinBox_last.setValue(self.A.shape[1]-1)
         self.slice_number.setMaximum(self.A.shape[1]-1)
@@ -406,7 +408,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
                 self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.A.shape[1])
 
-                filename2 = self.path_out_reconstructed_full + self.namepart + str(a + i * self.block_size).zfill(4) + self.filetype
+                filename2 = self.path_out_reconstructed_full + self.namepart + str(a + self.crop_offset + i * self.block_size).zfill(4) + self.filetype
                 print('Writing Reconstructed Slices:', filename2)
                 slice_save = slices_save[a - 1, :, :]
                 img = Image.fromarray(slice_save)

@@ -101,8 +101,9 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
         path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
         counter = self.path_klick[len(htap) - htap.find('.') - 5: len(htap) - htap.find('.') - 1:1]
+        counter = int(counter)
         filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
-
+        print('counter', counter)
 
         print(path_out)
         self.logbook.append(strftime("%Y_%m_%d %H:%M:%S ", localtime()) + path_out)
@@ -145,7 +146,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
             os.mkdir(path_out_changes + '/Pl_Div')
 
 
-        first = 1   # HIER ERSTE DATEI DES SCANS EINTRAGEN ; BEI MEHREREN SCANS WICHTIG
+        first = counter   # HIER ERSTE DATEINUMMER DES SCANS EINTRAGEN ; BEI MEHREREN SCANS WICHTIG
 
         self.file_name_protocol = path_out + '/' + 'reconstruction_protocol.txt'
 
@@ -296,9 +297,9 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
 
         # FOLLOW AND READ DATA AND RECONSTRUCT # ===========================================================================# FOLLOW AND READ DATA AND RECONSTRUCT #
 
-        i = first  # Projection number  (EXcluding FFs, zero, Paulchen, etc)                                         # Projection number counter
-        n = 4  # Image file number       (INcluding FFs, zero, Paulchen, etc)                                        # file number counter
-        while i < last + 1:
+        i = 1  # Projection number  (EXcluding FFs, zero, Paulchen, etc)                                         # Projection number counter
+        n = first + 3  # Image file number       (INcluding FFs, zero, Paulchen, etc)                                        # file number counter
+        while i < last - first + 2:
 
             self.lcdNumber_Total.display(i)
             self.lcdNumber_Image.display(i % sequence_size)
@@ -359,8 +360,8 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                 # ZERO DEG CHECK OR SKIP
                 if zero_deg_proj == 2:
                     filename_zero_load = path_in + namepart + str(n).zfill(4) + filetype
-                    filename_zero = path_out_changes + '/Zero' + namepart + str(i - first).zfill(4) + filetype
-                    filename_zero_divided = path_out_changes + '/Zero_div' + namepart + str(i - first).zfill(4) + filetype
+                    filename_zero = path_out_changes + '/Zero' + namepart + str(i - 1).zfill(4) + filetype
+                    filename_zero_divided = path_out_changes + '/Zero_div' + namepart + str(i - 1).zfill(4) + filetype
 
                     print('Loading Zero Degree Projection ', filename_zero_load)
                     self.logbook.append(strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Loading Zero Degree Projection ' + filename_zero_load)
@@ -376,15 +377,15 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
 
                     im_zero_normalized = numpy.nan_to_num(im_zero_normalized, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
 
-                    #im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)), [0, (x_offset_list[i - first] / self.pixel_size)],
+                    #im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)), [0, (x_offset_list[i - 1] / self.pixel_size)],
                     #                    order=3, mode='nearest', prefilter=True)
                     if self.find_pixel_size_vertical == True:
                         im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)),
-                                            [-(x_offset_list[i - first] / self.pixel_size), 0],
+                                            [-(x_offset_list[i - 1] / self.pixel_size), 0],
                                             order=3, mode='nearest', prefilter=True)
                     else:
                         im_zero_normalized = ndimage.shift(numpy.single(numpy.array(im_zero_normalized)),
-                                            [0, (x_offset_list[i - first] / self.pixel_size)],
+                                            [0, (x_offset_list[i - 1] / self.pixel_size)],
                                             order=3, mode='nearest', prefilter=True)
 
                     im_zero_divided = numpy.divide(im_zero_normalized, im_000_normalized)
@@ -413,7 +414,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                         array_zero_blur = gaussian_filter(array_zero, sigma=2)
 
                         print(i)#, first)
-                        if i == first:
+                        if i == 1:
                             zero_first = numpy.array(array_zero_blur)
                             zero_first = numpy.reshape(zero_first, -1)
                         else:
@@ -507,10 +508,10 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
             # SHIFT (SUB PIXEL SHIFT)
 
             if self.find_pixel_size_vertical == True:
-                arr = ndimage.shift(numpy.single(numpy.array(arr)), [-(x_offset_list[i - first] / self.pixel_size), 0],
+                arr = ndimage.shift(numpy.single(numpy.array(arr)), [-(x_offset_list[i - 1] / self.pixel_size), 0],
                                                           order=3, mode='nearest', prefilter=True)
             else:
-                arr = ndimage.shift(numpy.single(numpy.array(arr)), [0, (x_offset_list[i - first] / self.pixel_size)],
+                arr = ndimage.shift(numpy.single(numpy.array(arr)), [0, (x_offset_list[i - 1] / self.pixel_size)],
                                                           order=3, mode='nearest', prefilter=True)
 
 
@@ -540,12 +541,12 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
             arr2 = numpy.swapaxes(arr, 0, 2)
             arr2 = numpy.swapaxes(arr2, 1, 2)
 
-            if i == first:
+            if i == 1:
                 arra = numpy.zeros((number_of_sequences * sequence_size, arr2.shape[1], arr2.shape[2]), dtype=numpy.int16)
-                arra[i - first, :, :] = numpy.uint16(arr2)
+                arra[i - 1, :, :] = numpy.uint16(arr2)
 
             else:
-                arra[i - first, :, :] = numpy.uint16(arr2)
+                arra[i - 1, :, :] = numpy.uint16(arr2)
             print('Data Dimensions so far: ', i, ' of ', number_of_sequences * sequence_size, arra.shape)
             self.logbook.append(
                 strftime("%Y_%m_%d %H:%M:%S ", localtime()) + 'Data Dimensions so far: ' + str(i) + ' of ' + str(
@@ -568,7 +569,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                     self. Preview_slice.setValue(im.size[1]-1)
 
                 center_list = [cor] * (i)
-                arrar = arra[0:i - first + 1, slice - 2:slice + 1, :]
+                arrar = arra[0:i , slice - 2:slice + 1, :]
 
                 if self.checkBox_phase.isChecked() == True:
                     print('Performing phase retrieval')
@@ -656,7 +657,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                 self.Preview_slice.setValue(im.size[1] - 1)
 
             center_list = [cor] * (i)
-            arrar = arra[0:i - first + 1, slice - 2:slice + 1, :]
+            arrar = arra[0:i, slice - 2:slice + 1, :]
 
             QtWidgets.QApplication.processEvents()
 
@@ -826,7 +827,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
 
         if self.checkBox_reconstruct_at_end.isChecked() == True:
 
-            arra = arra[: f - first+1,:,:]
+            arra = arra[: f ,:,:]
             print('arra:', arra.dtype)
             print('checking conditions for adv. ringfilter')
 
@@ -840,7 +841,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
 
                 m = 0
                 while (m < sequence_size * number_of_sequences):
-                    print('index', m,' result', int( number_of_sequences * ((m-1) % sequence_size)  +  (theta_first_list[math.floor((m-1)/sequence_size)] - min(theta_first_list)) * number_of_sequences), ' last', f-first)
+                    print('index', m,' result', int( number_of_sequences * ((m-1) % sequence_size)  +  (theta_first_list[math.floor((m-1)/sequence_size)] - min(theta_first_list)) * number_of_sequences), ' last', f-1)
                     temp = arra[int(m), :, :]
                     arratwo[int( number_of_sequences * ((m-1) % sequence_size)  +  (theta_first_list[math.floor((m-1)/sequence_size)] - min(theta_first_list)) * number_of_sequences), :, :] = temp
                     m = m + 1
@@ -881,7 +882,7 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                 print('starting to reorder again')
                 print('arra and arrathree shape',arra.shape, arrathree.shape)
                 m = 0
-                while (m < f - first+1):
+                while (m < f ):
                     print(m)
                     arra[int(m),:,:] = arrathree[int( number_of_sequences * ((m-1) % sequence_size)  +  (theta_first_list[math.floor((m-1)/sequence_size)] - min(theta_first_list)) * number_of_sequences),:,:]
                     m = m + 1
@@ -976,16 +977,16 @@ class CT_preview(Ui_CT_previewWindow, QCOR_previewWindow):
                 zero_deg_offset = number_of_sequences
 
             filename1 = path_in + namepart + str(
-                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 4 + zero_deg_offset) .zfill(
+                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 4 + zero_deg_offset + first - 1) .zfill(
                 4) + filetype
             filename2 = path_in + namepart + str(
-                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 5 + zero_deg_offset).zfill(
+                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 5 + zero_deg_offset + first - 1).zfill(
                 4) + filetype
             filename3 = path_in + namepart + str(
-                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 6 + zero_deg_offset).zfill(
+                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 6 + zero_deg_offset + first - 1).zfill(
                 4) + filetype
             filename4 = path_in + namepart + str(
-                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 3 + zero_deg_offset).zfill(
+                number_of_sequences * sequence_size + (number_of_sequences + 1) * FF_sequence_size + 3 + zero_deg_offset + first - 1).zfill(
                 4) + filetype
 
             while os.path.exists(filename3) != True:
