@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2021.11.30 a"
+version =  "Version 2021.11.30 b"
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -147,7 +147,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
         self.Sample.setText(self.path_in)
 
-        #open projection file to get dimensions
+        #open projection file to get dimensions - (probably not necessary)
         if self.filetype == '.tif':
             reference = Image.open(self.path_klick)
             reference = numpy.array(reference)
@@ -177,8 +177,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         print(last)
 
-        #create array for all projections
+        #create array for all projections and for the angles
         self.A = numpy.zeros((last - self.counter + 1, reference.shape[1], reference.shape[0]), dtype=numpy.uint16)
+        self.w = numpy.zeros(last - self.counter + 1, dtype=numpy.float64)
 
         #open each projection, normalize and store in array
         i = self.counter
@@ -195,11 +196,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             if self.filetype == '.tif':
                 proj = Image.open(filename)
                 proj_ = numpy.array(proj)
+                self.last_zero_proj = 0
             elif self.filetype == '.h5':
                 with h5py.File(filename, 'r') as hdf:
                     entry = hdf.get('entry')
                     data = entry.get('/entry/data/data')
                     proj_ = numpy.array(data)
+                    w_data = entry.get('/entry/instrument/NDAttributes/CT_MICOS_W')       #get angles from hdf5-file
+                    self.w[i - self.counter] = numpy.array(w_data)
+                    print('w', self.w[i - self.counter])
+                    if round(self.w[i - self.counter]) == 0:                              #notice the last projection at zero degree
+                        self.last_zero_proj = i - self.counter + 3                        #assumes 3 images for speeding up the motor
             else:
                 print('Error loading file type')
 
@@ -254,11 +261,18 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_number.setMaximum(reference.shape[1]-1)
         self.slice_number.setMinimum(0)
         self.slice_number.setValue(round(reference.shape[1]/2))
-
         self.COR.setValue(round(reference.shape[0]/2))
-
         self.spinBox_first.setValue(0)
         self.spinBox_last.setValue(reference.shape[1]-1)
+
+        #prefill rotation-speed[°/img]
+        print('found angular values for ',self.w.shape, 'projections')
+        print(self.w)
+        poly_coeff =  numpy.polyfit(numpy.arange(len(self.w[round((last - self.counter + 1) /4) : round((last - self.counter + 1) * 3/4) ])), self.w[round((last - self.counter + 1) /4) : round((last - self.counter + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
+        print('Plynom coefficients',poly_coeff)
+        self.speed_W.setValue(poly_coeff[0])
+        print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
+
 
         #ungrey the buttons for further use of the program
         self.pushLoad.setEnabled(True)
@@ -325,7 +339,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #create one sinogram in the form [z, y, x]
         transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.A.shape[0]), 1, self.full_size), dtype=float)
-        transposed_sinos[:,0,:] = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), self.slice_number.value(),:]
+        #transposed_sinos[:,0,:] = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), self.slice_number.value(),:]
+        transposed_sinos[:,0,:] = self.A[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.A.shape[0]), self.slice_number.value(),:]
         print('transposed_sinos_shape', transposed_sinos.shape)
 
         #extend data with calculated parameter, compute logarithm, remove NaN-values
@@ -452,7 +467,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('Reconstructing block', i + 1, 'of', math.ceil(self.A.shape[1] / self.block_size))
 
             #extend data, take logarithm, remove NaN-values
-            extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
+            #extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
+            extended_sinos = self.A[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
+
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
             extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
