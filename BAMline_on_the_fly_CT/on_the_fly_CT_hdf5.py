@@ -1,7 +1,6 @@
-# On-the-fly-CT Tester
-version =  "Version 2021.11.02 a"
+# On-the-fly-CT Reco
+version =  "Version 2021.11.30 a"
 
-#imports
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap
@@ -17,7 +16,7 @@ import qimage2ndarray
 from scipy.ndimage.filters import gaussian_filter, median_filter
 
 
-Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_tester.ui')  # GUI vom Hauptfenster
+Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_tester.ui')  # connect to the GUI for the program
 
 class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
@@ -27,6 +26,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.setupUi(self)
         self.setWindowTitle('On_the_fly_CT_tester')
 
+        #connect buttons to actions
         self.pushLoad.clicked.connect(self.load)
         self.pushReconstruct.clicked.connect(self.reconstruct)
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
@@ -39,15 +39,14 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
         #self.filter_list.currentIndexChanged.connect(self.reconstruct)
 
-        self.block_size = 128
-        self.extend_FOV = 0.05
-        self.crop_offset = 0
-
-    #def load_hdf5(self, path):
+        self.block_size = 128       #volume will be reconstructed blockwise to reduce needed RAM
+        self.extend_FOV = 0.05      #the reconstructed area will be enlarged in order to allow off axis scans
+        self.crop_offset = 0        #needed for proper volume cropping
 
 
     def load(self):
 
+        #grey out the buttons while program is busy
         self.pushLoad.setEnabled(False)
         self.slice_number.setEnabled(False)
         self.COR.setEnabled(False)
@@ -56,23 +55,23 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.spinBox_ringradius.setEnabled(False)
         #self.spinBox_DF.setEnabled(False)
 
-
+        #ask for first flat field
         path_klick_FF = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
         self.path_klickFF = path_klick_FF[0]
         print(self.path_klickFF)
 
+        #analyse and cut the path in pieces
         htapFF = self.path_klickFF[::-1]
         self.path_inFF = self.path_klickFF[0: len(htapFF) - htapFF.find('/') - 1: 1]
         self.namepartFF = self.path_klickFF[len(htapFF) - htapFF.find('/') - 1: len(htapFF) - htapFF.find('.') - 5: 1]
         self.counterFF = int(self.path_klickFF[len(htapFF) - htapFF.find('.') - 5: len(htapFF) - htapFF.find('.') - 1:1])
         self.filetypeFF = self.path_klickFF[len(htapFF) - htapFF.find('.') - 1: len(htapFF):1]
-
         print(self.path_inFF)
         print(self.namepartFF)
         print(self.counterFF)
         print(self.filetypeFF)
 
-
+        #open file to get the image dimensions
         if self.filetypeFF == '.tif':
             referenceFF = Image.open(self.path_klickFF)
             referenceFF = numpy.array(referenceFF)
@@ -89,6 +88,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.full_sizeFF = referenceFF.shape
         print(self.full_sizeFF)
 
+        #check how many flat fields there are
         for i in range(self.counterFF,999999):
             print(i)
             lastFF = i
@@ -98,8 +98,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 break
 
         print(lastFF)
+
+        #create array to fill FFs in there
         self.FF = numpy.zeros((lastFF - self.counterFF + 1, referenceFF.shape[1], referenceFF.shape[0]), dtype=float)
 
+        #open each flat field and collect in array
         i = self.counterFF
         while i < lastFF:
             self.progressBar.setValue((i + 1) * 100 / lastFF)
@@ -124,14 +127,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             i = i + 1
 
+        #average all flat fields
         FFavg = numpy.mean(self.FF, axis=0)
         FFavg_df = FFavg - self.spinBox_DF.value()
 
 
+        #ask for first projection file
         path_klick_raw = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first projection, please.', self.path_klickFF)
         self.path_klick = path_klick_raw[0]
         print(self.path_klick)
 
+        #analyse and cut the path in pieces
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         ni_htap = self.path_in[::-1]
@@ -141,6 +147,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
         self.Sample.setText(self.path_in)
 
+        #open projection file to get dimensions
         if self.filetype == '.tif':
             reference = Image.open(self.path_klick)
             reference = numpy.array(reference)
@@ -159,7 +166,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
 
-        # LOADING FROM DISK #
+        #check how many files there are
         for i in range(self.counter,999999):
             print('finding last image ',i)
             last = i
@@ -169,12 +176,14 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 break
 
         print(last)
+
+        #create array for all projections
         self.A = numpy.zeros((last - self.counter + 1, reference.shape[1], reference.shape[0]), dtype=numpy.uint16)
 
-
+        #open each projection, normalize and store in array
         i = self.counter
         while i < last:
-
+            #update progress bar
             self.progressBar.setValue((i + 1) * 100 / last)
 
             filename = self.path_in + self.namepart + str(i).zfill(4) + self.filetype
@@ -182,6 +191,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             QtWidgets.QApplication.processEvents()
             print('Loading ', filename)
 
+            #open file
             if self.filetype == '.tif':
                 proj = Image.open(filename)
                 proj_ = numpy.array(proj)
@@ -193,6 +203,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             else:
                 print('Error loading file type')
 
+            #normalize
             proj_df = proj_ - self.spinBox_DF.value()
             proj_norm = numpy.divide(proj_df, FFavg_df)
             proj_norm = numpy.clip(proj_norm, 0.03, 4)
@@ -200,8 +211,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             proj_norm = numpy.nan_to_num(proj_norm, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
             proj_norm_16 = numpy.uint16(proj_norm)
 
+            #store in array
             self.A[i - self.counter,:,:] = proj_norm_16
 
+            #collect sum of all normalized projections for ring filtering
             if self.spinBox_ringradius.value() != 0:
 
                 if i == self.counter:
@@ -213,15 +226,20 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         print('A', self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
 
+
+
+        #Ring artifact handling
         if self.spinBox_ringradius.value() != 0:
             print('proj_sum dimensions', self.proj_sum.shape)
+
+            #correction map = (sum of projections) / median filter of (sum of projections)
             proj_sum_filtered = median_filter(self.proj_sum, size = self.spinBox_ringradius.value())
             correction_map = numpy.divide(self.proj_sum, proj_sum_filtered)
             correction_map = numpy.clip(correction_map, 0.9, 1.1)
 
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
 
-
+            #apply correction map for ring handling
             i=0
             while i < self.A.shape[0]:
                 self.A[i, :, :] = numpy.uint16(numpy.divide(self.A[i, :, :], correction_map))
@@ -232,6 +250,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         print('A dimensions',self.A.shape, 'A min vs max', numpy.amin(self.A), numpy.amax(self.A))
 
+        #prefill slice number, COR, cropping
         self.slice_number.setMaximum(reference.shape[1]-1)
         self.slice_number.setMinimum(0)
         self.slice_number.setValue(round(reference.shape[1]/2))
@@ -241,7 +260,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_first.setValue(0)
         self.spinBox_last.setValue(reference.shape[1]-1)
 
-
+        #ungrey the buttons for further use of the program
         self.pushLoad.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
         self.pushReconstruct_all.setEnabled(True)
@@ -255,8 +274,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.push_Crop_volume.setEnabled(True)
 
 
-
     def crop_volume(self):
+        #crop the top and/or bottom of the data. store the offset value for saving slices under the right number
         self.A = self.A[:,self.spinBox_first.value():self.spinBox_last.value()+1,:]
         self.crop_offset = self.crop_offset + self.spinBox_first.value()
         self.spinBox_first.setValue(0)
@@ -266,8 +285,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('A', self.A.shape)
 
 
-
     def reconstruct(self):
+
+        #grey out buttons as long as the program is busy
         self.pushLoad.setEnabled(False)
         self.pushReconstruct.setEnabled(False)
         self.pushReconstruct_all.setEnabled(False)
@@ -283,10 +303,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
 
-        self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
+        #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for off center 360 degree scan!!!)
+        self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05
         print('extend_FOV ', self.extend_FOV)
 
-
+        #check if the scan was 180° or 360°
         if self.number_of_projections * self.speed_W.value() >= 270:
             self.number_of_used_projections = round(360 / self.speed_W.value())
         else:
@@ -294,23 +315,30 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.number_of_used_projections = round(180 / self.speed_W.value())
         print('number of used projections', self.number_of_used_projections)
 
+        #create list with x-positions of projections
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
         print('x_list ',new_list.shape)
 
+        #create list with all projection angles
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print('COR_list ',len(center_list))
 
-        transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.A.shape[0]), 1, self.full_size), dtype=float)     #sinograms in the form [z, y, x]
+        #create one sinogram in the form [z, y, x]
+        transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.A.shape[0]), 1, self.full_size), dtype=float)
         transposed_sinos[:,0,:] = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), self.slice_number.value(),:]
         print('transposed_sinos_shape', transposed_sinos.shape)
 
+        #extend data with calculated parameter, compute logarithm, remove NaN-values
         extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
         extended_sinos = tomopy.minus_log(extended_sinos)
         extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
         extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
+
+        #apply phase retrieval if desired
         if self.checkBox_phase_2.isChecked() == True:
             extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
+        #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
             options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
             slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra, options=options)
@@ -318,21 +346,25 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
 
+        #cut reconstructed slice to original size
         slices = slices[:,round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2) , round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2)]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
         original_reconstruction = slices[0, :, :]
+
+        #find and display minimum and maximum values in reconstructed slice
         print(numpy.amin(original_reconstruction))
         print(numpy.amax(original_reconstruction))
         self.min.setText(str(numpy.amin(original_reconstruction)))
         self.max.setText(str(numpy.amax(original_reconstruction)))
         print('reconstructions done')
 
-
+        #display reconstructed slice
         myarray = (original_reconstruction - numpy.amin(original_reconstruction)) * self.brightness.value() / (numpy.amax(original_reconstruction) - numpy.amin(original_reconstruction))
         myarray = myarray.repeat(2, axis=0).repeat(2, axis=1)
         yourQImage = qimage2ndarray.array2qimage(myarray)
         self.test_reco.setPixmap(QPixmap(yourQImage))
 
+        #enable buttons, (test-)reco is finished
         self.pushLoad.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
         self.pushReconstruct_all.setEnabled(True)
@@ -345,6 +377,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
     def reconstruct_all(self):
+        #grey out buttons as long as program is busy
         self.pushLoad.setEnabled(False)
         self.pushReconstruct.setEnabled(False)
         self.slice_number.setEnabled(False)
@@ -356,6 +389,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         QtWidgets.QApplication.processEvents()
         print('def reconstruct complete volume')
 
+        #ask for the output path and create it
         self.path_out_reconstructed_ask = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder for reconstructions.', self.path_klick)
         self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name
         os.mkdir(self.path_out_reconstructed_full)
@@ -366,10 +400,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('Nr of projections', self.A.shape[0])
         print('Nr of slices', self.A.shape[1])
 
+        #calculate extension of projections to the sides
         self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
         print('extend_FOV ', self.extend_FOV)
 
-
+        #check if 180° or 360°-scan
         if self.number_of_projections * self.speed_W.value() >= 270:
             self.number_of_used_projections = round(360 / self.speed_W.value())
         else:
@@ -377,12 +412,15 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.number_of_used_projections = round(180 / self.speed_W.value())
         print('number of used projections', self.number_of_used_projections)
 
+        #creat list with x-positions
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
         print(new_list.shape)
 
+        #create list with projection angles
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
 
+        #save parameters in csv-file
         file_name_parameter = self.path_out_reconstructed_full + '/parameter.csv'
         with open(file_name_parameter, mode = 'w', newline='') as parameter_file:
             csv_writer = csv.writer(parameter_file, delimiter = ' ', quotechar=' ')
@@ -407,20 +445,24 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             csv_writer.writerow(['binning                       ', '1x1x1', ' '])
 
 
+        #divide volume into blocks and reconstruct them one by one in order to save RAM
         i = 0
         while (i < math.ceil(self.A.shape[1] / self.block_size)):
 
             print('Reconstructing block', i + 1, 'of', math.ceil(self.A.shape[1] / self.block_size))
 
+            #extend data, take logarithm, remove NaN-values
             extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
             extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
-
             extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
+
+            #apply phase retrieval if desired
             if self.checkBox_phase_2.isChecked() == True:
                 extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
+            #reconstruct
             if self.algorithm_list.currentText() == 'FBP_CUDA':
                 options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
                 slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra,
@@ -430,9 +472,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                                       algorithm=self.algorithm_list.currentText(),
                                       filter_name=self.filter_list.currentText())
 
+            #crop reconstructed data
             slices = slices[:, round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2), round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2)]
             slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
 
+            #16-bit integer conversion
             if self.radioButton_16bit_integer.isChecked() == True:
                 ima3 = 65535 * (slices - self.int_low.value()) / (self.int_high.value() - self.int_low.value())
                 ima3 = numpy.clip(ima3, 1, 65534)
@@ -443,6 +487,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             print('Reconstructed Volume is', slices_save.shape)
 
+            #write the reconstructed block to disk as TIF-file
             a = 1
             while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
 
@@ -460,6 +505,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             i = i + 1
 
+        #enable buttons, volume reconstruction is done
         self.pushLoad.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
         self.slice_number.setEnabled(True)
@@ -469,8 +515,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.speed_W.setEnabled(True)
         print('Done!')
 
-
-
+#no idea why we need this, but it wouldn't work without it ;-)
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
@@ -478,3 +523,5 @@ if __name__ == "__main__":
     main = On_the_fly_CT_tester()
     main.show()
     sys.exit(app.exec_())
+
+#end of code
