@@ -16,7 +16,7 @@ import qimage2ndarray
 from scipy.ndimage.filters import gaussian_filter, median_filter
 
 
-Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_tester.ui')  # connect to the GUI for the program
+Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf.ui')  # connect to the GUI for the program
 
 class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
@@ -39,7 +39,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
         #self.filter_list.currentIndexChanged.connect(self.reconstruct)
 
-        self.block_size = 128       #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.05      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
 
@@ -52,8 +52,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.COR.setEnabled(False)
         self.brightness.setEnabled(False)
         self.speed_W.setEnabled(False)
-        #self.spinBox_ringradius.setEnabled(False)
-        #self.spinBox_DF.setEnabled(False)
+        self.spinBox_ringradius.setEnabled(False)
+        self.spinBox_DF.setEnabled(False)
 
         #ask for first flat field
         path_klick_FF = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
@@ -286,6 +286,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_first.setEnabled(True)
         self.spinBox_last.setEnabled(True)
         self.push_Crop_volume.setEnabled(True)
+        self.spinBox_ringradius.setEnabled(True)
+        self.spinBox_DF.setEnabled(True)
 
 
     def crop_volume(self):
@@ -406,8 +408,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #ask for the output path and create it
         self.path_out_reconstructed_ask = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder for reconstructions.', self.path_klick)
-        self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name
-        os.mkdir(self.path_out_reconstructed_full)
+
+        #create a folder when saving reconstructed volume as tif-files
+        if self.save_tiff.isChecked() == True:
+            self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name
+            os.mkdir(self.path_out_reconstructed_full)
+        if self.save_hdf5.isChecked() == True:
+            self.path_out_reconstructed_full = self.path_out_reconstructed_ask
 
         self.full_size = self.A.shape[2]
         self.number_of_projections = self.A.shape[0]
@@ -427,7 +434,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.number_of_used_projections = round(180 / self.speed_W.value())
         print('number of used projections', self.number_of_used_projections)
 
-        #creat list with x-positions
+        #create list with x-positions
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
         print(new_list.shape)
 
@@ -467,7 +474,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('Reconstructing block', i + 1, 'of', math.ceil(self.A.shape[1] / self.block_size))
 
             #extend data, take logarithm, remove NaN-values
-            #extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
+            ###extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
             extended_sinos = self.A[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
 
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
@@ -504,21 +511,37 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             print('Reconstructed Volume is', slices_save.shape)
 
-            #write the reconstructed block to disk as TIF-file
-            a = 1
-            while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
 
-                self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.A.shape[1])
+            #save data
+            if self.save_tiff.isChecked() == True:
 
-                filename2 = self.path_out_reconstructed_full + self.namepart + str(a + self.crop_offset + i * self.block_size).zfill(4) + '.tif'
-                print('Writing Reconstructed Slices:', filename2)
-                slice_save = slices_save[a - 1, :, :]
-                img = Image.fromarray(slice_save)
-                img.save(filename2)
-                QtCore.QCoreApplication.processEvents()
-                time.sleep(0.02)
+                # write the reconstructed block to disk as TIF-file
+                a = 1
+                while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
+                    self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.A.shape[1])
+                    filename2 = self.path_out_reconstructed_full + self.namepart + str(
+                        a + self.crop_offset + i * self.block_size).zfill(4) + '.tif'
+                    print('Writing Reconstructed Slices:', filename2)
+                    slice_save = slices_save[a - 1, :, :]
+                    img = Image.fromarray(slice_save)
+                    img.save(filename2)
+                    QtCore.QCoreApplication.processEvents()
+                    time.sleep(0.02)
+                    a = a + 1
 
-                a = a + 1
+            if self.save_hdf5.isChecked() == True:
+                if i == 0:
+                    # create an an hdf5-file and write the first reconstructed block into it
+                    with h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w')  as f:
+                        f.create_dataset("Volume", data=slices_save, maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
+                else:
+                    # write the subsequent blocks into the hdf5-file
+                    f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'r+')
+                    vol_proxy = f['Volume']
+                    print('volume_proxy.shape', vol_proxy.shape)
+                    vol_proxy.resize((vol_proxy.shape[0] + slices_save.shape[0]), axis=0)
+                    vol_proxy[i * self.block_size : i * self.block_size + slices_save.shape[0] ,:,:] = slices_save
+
 
             i = i + 1
 

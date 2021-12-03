@@ -1,0 +1,862 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>606</width>
+    <height>960</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="31" column="0" colspan="3">
+     <widget class="Line" name="line">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="2">
+     <widget class="QDoubleSpinBox" name="Offset_Angle">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+      </property>
+      <property name="minimum">
+       <double>-360.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>360.000000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="20" column="0">
+     <widget class="QLabel" name="label_15">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Algorithm</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0">
+     <widget class="QLabel" name="label_7">
+      <property name="text">
+       <string>brightness</string>
+      </property>
+     </widget>
+    </item>
+    <item row="29" column="0">
+     <widget class="QSpinBox" name="spinBox_first">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="maximum">
+       <number>999999</number>
+      </property>
+     </widget>
+    </item>
+    <item row="35" column="0">
+     <widget class="QTextBrowser" name="min">
+      <property name="maximumSize">
+       <size>
+        <width>119</width>
+        <height>23</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="45" column="0">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="18" column="0">
+     <widget class="QLabel" name="label_4">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Y-speed[Px/img]</string>
+      </property>
+     </widget>
+    </item>
+    <item row="30" column="0" colspan="3">
+     <widget class="QPushButton" name="push_Crop_volume">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Crop Volume (irreversible)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="0">
+     <widget class="QLabel" name="label_9">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Offset Angle</string>
+      </property>
+     </widget>
+    </item>
+    <item row="34" column="2">
+     <widget class="QDoubleSpinBox" name="int_high">
+      <property name="decimals">
+       <number>3</number>
+      </property>
+      <property name="minimum">
+       <double>-65535.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>65535.000000000000000</double>
+      </property>
+      <property name="value">
+       <double>100.000000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="33" column="0" colspan="3">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QRadioButton" name="radioButton_32bit_float">
+        <property name="text">
+         <string>32-bit float</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">buttonGroup16_32bit</string>
+        </attribute>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButton_16bit_integer">
+        <property name="text">
+         <string>16-bit integer scaling</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">buttonGroup16_32bit</string>
+        </attribute>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="20" column="2">
+     <widget class="QComboBox" name="algorithm_list">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <item>
+       <property name="text">
+        <string>gridrec</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>FBP_CUDA</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>art</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>bart</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>fbp</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>sirt</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>tv</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>grad</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>mlem</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>tikh</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>osem</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>pml_hybrid</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>pml_quad</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ospml_hybrid</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ospml_quad</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="9" column="0" rowspan="2" colspan="3">
+     <widget class="QPushButton" name="pushLoad">
+      <property name="text">
+       <string>Load and Normalize</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="2">
+     <widget class="QSpinBox" name="brightness">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="maximum">
+       <number>640000</number>
+      </property>
+      <property name="value">
+       <number>255</number>
+      </property>
+     </widget>
+    </item>
+    <item row="22" column="0">
+     <widget class="QLabel" name="label_16">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Filter</string>
+      </property>
+     </widget>
+    </item>
+    <item row="35" column="2">
+     <widget class="QTextBrowser" name="max">
+      <property name="maximumSize">
+       <size>
+        <width>119</width>
+        <height>23</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>slice</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="2">
+     <widget class="QDoubleSpinBox" name="speed_W">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="decimals">
+       <number>5</number>
+      </property>
+      <property name="singleStep">
+       <double>0.000100000000000</double>
+      </property>
+      <property name="value">
+       <double>0.300000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>Rot-speed[°/img]</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="3">
+     <widget class="QProgressBar" name="progressBar">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="value">
+       <number>0</number>
+      </property>
+     </widget>
+    </item>
+    <item row="28" column="2">
+     <widget class="QLabel" name="label_6">
+      <property name="text">
+       <string>last</string>
+      </property>
+     </widget>
+    </item>
+    <item row="34" column="0">
+     <widget class="QDoubleSpinBox" name="int_low">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="decimals">
+       <number>3</number>
+      </property>
+      <property name="minimum">
+       <double>-65535.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>65535.000000000000000</double>
+      </property>
+      <property name="value">
+       <double>-100.000000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3" rowspan="44">
+     <widget class="QScrollArea" name="scrollArea_3">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOn</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOn</enum>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QAbstractScrollArea::AdjustIgnored</enum>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents_3">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>4022</width>
+         <height>4022</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_10">
+        <item row="0" column="1">
+         <widget class="QLabel" name="test_reco">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>4000</width>
+            <height>4000</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>5000</width>
+            <height>5000</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>test_reco</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="28" column="0">
+     <widget class="QLabel" name="label_5">
+      <property name="text">
+       <string>first</string>
+      </property>
+     </widget>
+    </item>
+    <item row="19" column="0" colspan="3">
+     <widget class="QPushButton" name="pushReconstruct">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>50</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Test</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>COR:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="25" column="0" colspan="3">
+     <layout class="QGridLayout" name="gridLayout_8">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_distance_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>distance (cm)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_alpha_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>alpha</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QDoubleSpinBox" name="doubleSpinBox_alpha_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="decimals">
+         <number>6</number>
+        </property>
+        <property name="singleStep">
+         <double>0.000100000000000</double>
+        </property>
+        <property name="value">
+         <double>0.001000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_Energy_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Energy (keV)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBox_phase_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Phase Retrieval</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="doubleSpinBox_Energy_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="minimum">
+         <double>1.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>100.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>20.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QDoubleSpinBox" name="doubleSpinBox_distance_2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="maximum">
+         <double>5000.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="Line" name="line_9">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="29" column="2">
+     <widget class="QSpinBox" name="spinBox_last">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="maximum">
+       <number>999999</number>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="2">
+     <widget class="QSpinBox" name="slice_number">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="maximum">
+       <number>5000</number>
+      </property>
+      <property name="value">
+       <number>0</number>
+      </property>
+     </widget>
+    </item>
+    <item row="18" column="2">
+     <widget class="QDoubleSpinBox" name="speed_Y">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" colspan="4">
+     <widget class="QTextBrowser" name="Sample">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>20</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="label_8">
+      <property name="text">
+       <string>ring handling (radius)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="0">
+     <widget class="QLabel" name="label_10">
+      <property name="text">
+       <string>Dark Field Offset</string>
+      </property>
+     </widget>
+    </item>
+    <item row="24" column="0" colspan="3">
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="22" column="2">
+     <widget class="QComboBox" name="filter_list">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <item>
+       <property name="text">
+        <string>shepp</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ramlak</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>hann</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>hamming</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>parzen</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>butterworth</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>cosine</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>none</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="7" column="2">
+     <widget class="QSpinBox" name="spinBox_DF">
+      <property name="maximum">
+       <number>65535</number>
+      </property>
+      <property name="value">
+       <number>100</number>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="2">
+     <widget class="QDoubleSpinBox" name="COR">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="maximum">
+       <double>5000.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.250000000000000</double>
+      </property>
+      <property name="value">
+       <double>0.000000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="2">
+     <widget class="QSpinBox" name="spinBox_ringradius">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="maximum">
+       <number>65535</number>
+      </property>
+      <property name="value">
+       <number>5</number>
+      </property>
+     </widget>
+    </item>
+    <item row="36" column="0" colspan="3">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QRadioButton" name="save_tiff">
+        <property name="text">
+         <string>save as tiff</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">save_tif_hdf5</string>
+        </attribute>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="save_hdf5">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>save as hdf5</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">save_tif_hdf5</string>
+        </attribute>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="37" column="0" colspan="3">
+     <widget class="QPushButton" name="pushReconstruct_all">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Reconstruct
+ Volume</string>
+      </property>
+     </widget>
+    </item>
+    <item row="38" column="0" colspan="3">
+     <widget class="QProgressBar" name="progressBar_Reconstruction_2">
+      <property name="value">
+       <number>0</number>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>606</width>
+     <height>26</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+ <buttongroups>
+  <buttongroup name="save_tif_hdf5"/>
+  <buttongroup name="buttonGroup16_32bit"/>
+ </buttongroups>
+</ui>
