@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2021.11.30 b"
+version =  "Version 2021.12.03 a"
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
