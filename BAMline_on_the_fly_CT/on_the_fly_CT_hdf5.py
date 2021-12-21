@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2021.12.03 a"
+version =  "Version 2021.12.21 a"
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -536,6 +536,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                         f.create_dataset("Volume", data=slices_save, maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
                 else:
                     # write the subsequent blocks into the hdf5-file
+                    self.progressBar.setValue((i * self.block_size) * 100 / self.A.shape[1])
                     f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'r+')
                     vol_proxy = f['Volume']
                     print('volume_proxy.shape', vol_proxy.shape)
