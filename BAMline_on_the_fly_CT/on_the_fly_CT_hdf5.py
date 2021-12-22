@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2021.12.21 a"
+version =  "Version 2021.12.22 b"
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -43,17 +43,64 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.extend_FOV = 0.05      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
 
+    def buttons_deactivate_all(self):
+        self.spinBox_ringradius.setEnabled(False)
+        self.spinBox_DF.setEnabled(False)
+        self.pushLoad.setEnabled(False)
+
+        self.slice_number.setEnabled(False)
+        self.COR.setEnabled(False)
+        self.Offset_Angle.setEnabled(False)
+        self.brightness.setEnabled(False)
+        self.speed_W.setEnabled(False)
+        self.pushReconstruct.setEnabled(False)
+        self.algorithm_list.setEnabled(False)
+        self.filter_list.setEnabled(False)
+
+        self.checkBox_phase_2.setEnabled(False)
+        self.doubleSpinBox_distance_2.setEnabled(False)
+        self.doubleSpinBox_Energy_2.setEnabled(False)
+        self.doubleSpinBox_alpha_2.setEnabled(False)
+
+        self.spinBox_first.setEnabled(False)
+        self.spinBox_last.setEnabled(False)
+        self.push_Crop_volume.setEnabled(False)
+
+        self.pushReconstruct_all.setEnabled(False)
+        self.int_low.setEnabled(False)
+        self.int_high.setEnabled(False)
+    def buttons_activate_load(self):
+        self.spinBox_ringradius.setEnabled(True)
+        self.spinBox_DF.setEnabled(True)
+        self.pushLoad.setEnabled(True)
+    def buttons_activate_reco(self):
+        self.slice_number.setEnabled(True)
+        self.COR.setEnabled(True)
+        self.Offset_Angle.setEnabled(True)
+        self.brightness.setEnabled(True)
+        self.speed_W.setEnabled(True)
+        self.pushReconstruct.setEnabled(True)
+        self.algorithm_list.setEnabled(True)
+        self.filter_list.setEnabled(True)
+
+        self.checkBox_phase_2.setEnabled(True)
+        self.doubleSpinBox_distance_2.setEnabled(True)
+        self.doubleSpinBox_Energy_2.setEnabled(True)
+        self.doubleSpinBox_alpha_2.setEnabled(True)
+    def buttons_activate_reco_all(self):
+        self.pushReconstruct_all.setEnabled(True)
+        self.int_low.setEnabled(True)
+        self.int_high.setEnabled(True)
+    def buttons_activate_crop_volume(self):
+        self.spinBox_first.setEnabled(True)
+        self.spinBox_last.setEnabled(True)
+        self.push_Crop_volume.setEnabled(True)
+
 
     def load(self):
 
         #grey out the buttons while program is busy
-        self.pushLoad.setEnabled(False)
-        self.slice_number.setEnabled(False)
-        self.COR.setEnabled(False)
-        self.brightness.setEnabled(False)
-        self.speed_W.setEnabled(False)
-        self.spinBox_ringradius.setEnabled(False)
-        self.spinBox_DF.setEnabled(False)
+        self.buttons_deactivate_all()
 
         #ask for first flat field
         path_klick_FF = QtWidgets.QFileDialog.getOpenFileName(self, 'Select first FF-file, please.', "C:\Fly_and_Helix_Test\Flying-CT_Test\MEA_Flying-CT_2x2_crop_normalized")
@@ -275,22 +322,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
         #ungrey the buttons for further use of the program
-        self.pushLoad.setEnabled(True)
-        self.pushReconstruct.setEnabled(True)
-        self.pushReconstruct_all.setEnabled(True)
-        self.slice_number.setEnabled(True)
-        self.COR.setEnabled(True)
-        self.brightness.setEnabled(True)
-        self.Offset_Angle.setEnabled(True)
-        self.speed_W.setEnabled(True)
-        self.spinBox_first.setEnabled(True)
-        self.spinBox_last.setEnabled(True)
-        self.push_Crop_volume.setEnabled(True)
-        self.spinBox_ringradius.setEnabled(True)
-        self.spinBox_DF.setEnabled(True)
+        self.buttons_activate_load()
+        self.buttons_activate_reco()
+        #self.buttons_activate_crop_volume()
+        #self.buttons_activate_reco_all()
+        print('Loading/Normalizing complete!')
 
 
     def crop_volume(self):
+        #grey out the buttons while program is busy
+        self.buttons_deactivate_all()
+
         #crop the top and/or bottom of the data. store the offset value for saving slices under the right number
         self.A = self.A[:,self.spinBox_first.value():self.spinBox_last.value()+1,:]
         self.crop_offset = self.crop_offset + self.spinBox_first.value()
@@ -300,18 +342,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('Volume Cropped')
         print('A', self.A.shape)
 
+        #ungrey the buttons for further use of the program
+        self.buttons_activate_load()
+        self.buttons_activate_reco()
+        self.buttons_activate_crop_volume()
+        self.buttons_activate_reco_all()
+
 
     def reconstruct(self):
 
-        #grey out buttons as long as the program is busy
-        self.pushLoad.setEnabled(False)
-        self.pushReconstruct.setEnabled(False)
-        self.pushReconstruct_all.setEnabled(False)
-        self.slice_number.setEnabled(False)
-        self.COR.setEnabled(False)
-        self.brightness.setEnabled(False)
-        self.Offset_Angle.setEnabled(False)
-        self.speed_W.setEnabled(False)
+        # grey out the buttons while program is busy
+        self.buttons_deactivate_all()
 
         QtWidgets.QApplication.processEvents()
         print('def reconstruct')
@@ -381,27 +422,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         yourQImage = qimage2ndarray.array2qimage(myarray)
         self.test_reco.setPixmap(QPixmap(yourQImage))
 
-        #enable buttons, (test-)reco is finished
-        self.pushLoad.setEnabled(True)
-        self.pushReconstruct.setEnabled(True)
-        self.pushReconstruct_all.setEnabled(True)
-        self.slice_number.setEnabled(True)
-        self.COR.setEnabled(True)
-        self.Offset_Angle.setEnabled(True)
-        self.brightness.setEnabled(True)
-        self.speed_W.setEnabled(True)
-        print('Done!')
+        #ungrey the buttons for further use of the program
+        self.buttons_activate_load()
+        self.buttons_activate_reco()
+        self.buttons_activate_crop_volume()
+        self.buttons_activate_reco_all()
 
 
     def reconstruct_all(self):
-        #grey out buttons as long as program is busy
-        self.pushLoad.setEnabled(False)
-        self.pushReconstruct.setEnabled(False)
-        self.slice_number.setEnabled(False)
-        self.COR.setEnabled(False)
-        self.brightness.setEnabled(False)
-        self.Offset_Angle.setEnabled(False)
-        self.speed_W.setEnabled(False)
+        #grey out the buttons while program is busy
+        self.buttons_deactivate_all()
 
         QtWidgets.QApplication.processEvents()
         print('def reconstruct complete volume')
@@ -443,7 +473,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print(len(center_list))
 
         #save parameters in csv-file
-        file_name_parameter = self.path_out_reconstructed_full + '/parameter.csv'
+        file_name_parameter = self.path_out_reconstructed_full + '/' + self.folder_name + '_parameter.csv'
         with open(file_name_parameter, mode = 'w', newline='') as parameter_file:
             csv_writer = csv.writer(parameter_file, delimiter = ' ', quotechar=' ')
             csv_writer.writerow(['Path input                    ', self.path_in,' '])
@@ -519,14 +549,14 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 a = 1
                 while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
                     self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.A.shape[1])
+                    QtCore.QCoreApplication.processEvents()
+                    time.sleep(0.02)
                     filename2 = self.path_out_reconstructed_full + self.namepart + str(
                         a + self.crop_offset + i * self.block_size).zfill(4) + '.tif'
                     print('Writing Reconstructed Slices:', filename2)
                     slice_save = slices_save[a - 1, :, :]
                     img = Image.fromarray(slice_save)
                     img.save(filename2)
-                    QtCore.QCoreApplication.processEvents()
-                    time.sleep(0.02)
                     a = a + 1
 
             if self.save_hdf5.isChecked() == True:
@@ -537,6 +567,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 else:
                     # write the subsequent blocks into the hdf5-file
                     self.progressBar.setValue((i * self.block_size) * 100 / self.A.shape[1])
+                    QtCore.QCoreApplication.processEvents()
+                    time.sleep(0.02)
                     f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'r+')
                     vol_proxy = f['Volume']
                     print('volume_proxy.shape', vol_proxy.shape)
@@ -546,15 +578,18 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             i = i + 1
 
-        #enable buttons, volume reconstruction is done
-        self.pushLoad.setEnabled(True)
-        self.pushReconstruct.setEnabled(True)
-        self.slice_number.setEnabled(True)
-        self.COR.setEnabled(True)
-        self.brightness.setEnabled(True)
-        self.Offset_Angle.setEnabled(True)
-        self.speed_W.setEnabled(True)
+        #set progress bar to 100%
+        self.progressBar.setValue(100)
+        QtCore.QCoreApplication.processEvents()
+        time.sleep(0.02)
+
+        #ungrey the buttons for further use of the program
+        self.buttons_activate_load()
+        self.buttons_activate_reco()
+        self.buttons_activate_crop_volume()
+        self.buttons_activate_reco_all()
         print('Done!')
+
 
 #no idea why we need this, but it wouldn't work without it ;-)
 if __name__ == "__main__":
