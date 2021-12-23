@@ -1428,9 +1428,9 @@ class ballSequence:
 
     def savePicture(self, ballImg, ballData, subfolder):
         folder = self.getOutputFolder() + "/" + subfolder
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        ballImg.save(folder + "/" + ballData.getFilename())
+        #if not os.path.exists(folder):
+        #    os.makedirs(folder)
+        #ballImg.save(folder + "/" + ballData.getFilename())
 
     def trackBall(self):
         self._ballList = []

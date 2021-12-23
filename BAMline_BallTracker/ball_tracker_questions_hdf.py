@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
 
 
-print('We are in Ball_Tracker_Question.py now.')
+print('We are in Ball_Tracker_Question_hdf.py now.')
 
 Ui_Ball_Tracker_Question_Window, Q_Ball_Tracker_Question_Window = loadUiType('Ball_Tracker_Question_hdf.ui')  # GUI vom Hauptfenster
 
@@ -17,8 +17,8 @@ class Ball_Tracker_Question(Ui_Ball_Tracker_Question_Window, Q_Ball_Tracker_Ques
         self.pushButton.clicked.connect(self.save_values)
 
     def save_values(self):
-        self.tabWidget = QtWidgets.tabWidget.currentIndex()
-        print(self.tabWidget)
+        self.tabWidget = self.tabWidget.currentIndex()
+
         self.startNumberProj = self.startNumberProj.value()
         self.numberProj = self.numberProj.value()
         self.startNumberFFs = self.startNumberFFs.value()

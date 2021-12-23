@@ -11,11 +11,17 @@ from balltracker.image import ImageStack
 from balltracker.ball import ballSequence
 from ball_tracker_questions_hdf import Ball_Tracker_Question
 import tkinter.filedialog
+import h5py
+import numpy
+import os
+from PIL import Image
+
 
 def main():
 	# Basics:
 	# ---------------------------------------------------
-	path_klick = tkinter.filedialog.askopenfilename(title="Select one file of the scan")
+	path_klick = tkinter.filedialog.askopenfilename(title="Select one file of the scan", initialdir = "/mnt/raid/CT/2021/2021_12/Markoetter/W500um/211207_1441_36_W500um___Z225_Y8400_20000eV_3p61um_100ms/")
+	#path_klick = QtWidgets.QFileDialog.getOpenFileName(None, 'Select one file of the scan, please.',"/mnt/raid/CT/2021/2021_12/Markoetter/W500um/211207_1441_36_W500um___Z225_Y8400_20000eV_3p61um_100ms/")
 
 	name = "Kugeljustage_"
 
@@ -27,8 +33,25 @@ def main():
 	app.exec_()
 
 	print('Reading parameters...')
+	print(main_Ball_Tracker_Question.tabWidget)
 
-	if self.tabWidget==0:
+	# checking start of rotation
+	with h5py.File(path_klick, 'r') as hdf:
+		entry = hdf.get('entry')
+		w_data = entry.get('/entry/instrument/NDAttributes/CT_MICOS_W')
+		w_array = numpy.array(w_data)
+		print(w_array)
+		i = main_Ball_Tracker_Question.HDF_FF1
+		while i < len(w_array):
+			print(i)
+			if round(w_array[i]) != 0:  										# notice the last projection at zero degree
+				last_zero_proj = i + 3 - main_Ball_Tracker_Question.HDF_FF1 	# start analysis 3 images after start of rotation
+				break
+			i = i + 1
+
+	print('last zero projection: ', last_zero_proj)
+
+	if main_Ball_Tracker_Question.tabWidget==0:
 		startNumberProj = main_Ball_Tracker_Question.startNumberProj
 		numberProj = main_Ball_Tracker_Question.numberProj
 		startNumberFFs = main_Ball_Tracker_Question.startNumberFFs
@@ -37,7 +60,7 @@ def main():
 		Threshold = main_Ball_Tracker_Question.Threshold
 		Binning = main_Ball_Tracker_Question.Binning     # or 2, whatever
 		skip = main_Ball_Tracker_Question.skip
-		print(Binning)
+		print('Binning: ', Binning)
 
 		htap = path_klick[::-1]
 		path_in = path_klick[0: len(htap) - htap.find('/') - 1: 1]
@@ -58,14 +81,14 @@ def main():
 		Threshold = main_Ball_Tracker_Question.Threshold
 		Binning = main_Ball_Tracker_Question.Binning     # or 2, whatever
 		skip = main_Ball_Tracker_Question.skip
-		print(Binning)
+		print('Binning: ', Binning)
 
 		htap = path_klick[::-1]
 		path_in = path_klick[0: len(htap) - htap.find('/') - 1: 1]
 		namepart = path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 5: 1]
 
 		# creating temporal tiffs out of the hdf
-		with h5py.File(self.path_klick, 'r') as hdf:
+		with h5py.File(path_klick, 'r') as hdf:
 			entry = hdf.get('entry')
 			data = entry.get('/entry/data/data')
 			all_images = numpy.array(data)
@@ -73,23 +96,33 @@ def main():
 			FFs = all_images[0:hdf_FF1,:,:]
 
 		# saving temporal projections
-		for i in projections.shape[0]:
-			os.mkdir(path_in + 'temp_proj/')
-			filename_proj = path_in + 'temp_proj/' + namepart + str(i).zfill(4) + '.tif'
+		i = 0
+		folder = path_in + namepart + '_temp_proj/'
+		if not os.path.exists(folder):
+			os.makedirs(folder)
+
+		while i < projections.shape[0]:
+			filename_proj = path_in + namepart + '_temp_proj/Proj' + str(i).zfill(4) + '.tif'
 			image_save = projections[i, :, :]
 			img = Image.fromarray(image_save)
 			img.save(filename_proj)
+			i = i + 1
+
 		# saving temporal FFs
-		for i in FFs.shape[0]:
-			os.mkdir(path_in + 'temp_FFs/')
-			filename_FFs = path_in + 'temp_FFs/' + namepart + str(i).zfill(4) + '.tif'
+		i = 0
+		folder = path_in + namepart + '_temp_FFs/'
+		if not os.path.exists(folder):
+			os.makedirs(folder)
+		while i < FFs.shape[0]:
+			filename_FFs = path_in + namepart + '_temp_FFs/FFs' + str(i).zfill(4) + '.tif'
 			image_save = FFs[i, :, :]
 			img = Image.fromarray(image_save)
 			img.save(filename_FFs)
+			i = i + 1
 
 		# setting paths for ball tracking
-		inputFiles = ImageStack(filePattern= path_in + 'temp_proj/' + namepart + "%4d.tif", startNumber = startNumberProj, slices = numberProj)
-		flatFields = ImageStack(filePattern= path_in + 'temp_FFs/' + namepart + "%4d.tif", startNumber = startNumberFFs, slices = numberFFs)
+		inputFiles = ImageStack(filePattern= path_in + namepart + '_temp_proj/Proj' + "%4d.tif", startNumber = last_zero_proj, slices = numberProj)
+		flatFields = ImageStack(filePattern= path_in + namepart + '_temp_FFs/FFs' + "%4d.tif", startNumber = 0, slices = numberFFs)
 		darkFields = None
 
 	outputFolder = path_in + "_Ball-Tracking"
@@ -147,10 +180,10 @@ def main():
 	seq.cropBorder(top=main_Ball_Tracker_Question.CropTop, bottom=main_Ball_Tracker_Question.CropBottom, left=main_Ball_Tracker_Question.CropLeft, right=main_Ball_Tracker_Question.CropRight)
 	#seq.crop(x0=100, y0=1000, x1=5000, y1=2000)    # Crop overrides border crop, if defined.
 
-	seq.autoCrop(doAutoCrop=True, autoCropSize=900, autoCropBinningFactor=40)
+	seq.autoCrop(doAutoCrop=True, autoCropSize=600, autoCropBinningFactor=40)
 
 	# Cropping the ball afterwards, mostly to produce an animation:
-	seq.cropAndSaveCenteredBall(doCropBall=True, radius=300)
+	seq.cropAndSaveCenteredBall(doCropBall=True, radius=500)
 
 
 	# Drift compensation:
@@ -162,7 +195,7 @@ def main():
 
 	# ROI region for unbinned image:
 	# Define distance from [top or bottom] and [left or right], and a size.
-	seq.driftROI(bottom=300, left=300, width=4000, height=600)
+	seq.driftROI(bottom=300, left=300, width=4000, height=300)
 
 
 	# ---------------------------------------------------
