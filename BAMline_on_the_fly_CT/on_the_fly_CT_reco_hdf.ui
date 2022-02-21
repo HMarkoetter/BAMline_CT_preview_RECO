@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>797</width>
-    <height>878</height>
+    <width>852</width>
+    <height>848</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -651,8 +651,8 @@
       <widget class="QWidget" name="scrollAreaWidgetContents_3">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>0</y>
+         <x>-1856</x>
+         <y>-50</y>
          <width>4022</width>
          <height>4022</height>
         </rect>
@@ -690,19 +690,19 @@
       </widget>
      </widget>
     </item>
-    <item row="3" column="0">
+    <item row="3" column="0" colspan="2">
      <layout class="QGridLayout" name="gridLayout_6">
-      <item row="3" column="1">
-       <widget class="QTextBrowser" name="max">
-        <property name="enabled">
-         <bool>false</bool>
+      <item row="1" column="1">
+       <widget class="QRadioButton" name="radioButton_16bit_integer">
+        <property name="text">
+         <string>16-bit integer</string>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>119</width>
-          <height>23</height>
-         </size>
+        <property name="checked">
+         <bool>true</bool>
         </property>
+        <attribute name="buttonGroup">
+         <string notr="true">buttonGroup16_32bit</string>
+        </attribute>
        </widget>
       </item>
       <item row="1" column="0">
@@ -712,19 +712,6 @@
         </property>
         <attribute name="buttonGroup">
          <string notr="true">buttonGroup16_32bit</string>
-        </attribute>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="save_tiff">
-        <property name="text">
-         <string>save as tiff</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">save_tif_hdf5</string>
         </attribute>
        </widget>
       </item>
@@ -747,29 +734,13 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QRadioButton" name="radioButton_16bit_integer">
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="save_tiff">
         <property name="text">
-         <string>16-bit integer</string>
+         <string>save as tiff</string>
         </property>
         <property name="checked">
          <bool>true</bool>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">buttonGroup16_32bit</string>
-        </attribute>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QRadioButton" name="save_hdf5">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>save as hdf5</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
         </property>
         <attribute name="buttonGroup">
          <string notr="true">save_tif_hdf5</string>
@@ -795,7 +766,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0" colspan="2">
+      <item row="3" column="0" colspan="2">
        <widget class="QPushButton" name="pushReconstruct_all">
         <property name="enabled">
          <bool>false</bool>
@@ -806,17 +777,20 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QTextBrowser" name="min">
+      <item row="0" column="1">
+       <widget class="QRadioButton" name="save_hdf5">
         <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>save as hdf5</string>
+        </property>
+        <property name="checked">
          <bool>false</bool>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>119</width>
-          <height>23</height>
-         </size>
-        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">save_tif_hdf5</string>
+        </attribute>
        </widget>
       </item>
      </layout>
@@ -828,7 +802,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>797</width>
+     <width>852</width>
      <height>26</height>
     </rect>
    </property>
