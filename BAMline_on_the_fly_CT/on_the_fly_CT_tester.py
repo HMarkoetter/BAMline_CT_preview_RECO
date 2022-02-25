@@ -289,7 +289,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
         myarray = (original_reconstruction - numpy.amin(original_reconstruction)) * self.brightness.value() / (numpy.amax(original_reconstruction) - numpy.amin(original_reconstruction))
-        myarray = myarray.repeat(2, axis=0).repeat(2, axis=1)
+        myarray = myarray.repeat(2, axis=0).repeat(2, axis=1) #enlarges to 200% size
         yourQImage = qimage2ndarray.array2qimage(myarray)
         self.test_reco.setPixmap(QPixmap(yourQImage))
 

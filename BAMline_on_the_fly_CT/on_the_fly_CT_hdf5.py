@@ -39,12 +39,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
         #self.filter_list.currentIndexChanged.connect(self.reconstruct)
 
-        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 128        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.05      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
 
     def buttons_deactivate_all(self):
         self.spinBox_ringradius.setEnabled(False)
+        self.Offset_Angle.setEnabled(False)
         self.spinBox_DF.setEnabled(False)
         self.pushLoad.setEnabled(False)
 
@@ -574,7 +575,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                     print('volume_proxy.shape', vol_proxy.shape)
                     vol_proxy.resize((vol_proxy.shape[0] + slices_save.shape[0]), axis=0)
                     vol_proxy[i * self.block_size : i * self.block_size + slices_save.shape[0] ,:,:] = slices_save
-
+                    self.progressBar.setValue((i * self.block_size) * 100 / self.A.shape[1])
 
             i = i + 1
 

@@ -15,9 +15,10 @@ import os
 import csv
 import qimage2ndarray
 from scipy.ndimage.filters import gaussian_filter, median_filter
+import pvaccess as pva
 
 
-Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_large.ui')  # connect to the GUI for the program
+Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_panel.ui')  # connect to the GUI for the program
 
 class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
@@ -34,16 +35,60 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
         #self.push_Crop_volume.clicked.connect(self.crop_volume)
         #self.slice_number.valueChanged.connect(self.reconstruct)
-        #self.COR.valueChanged.connect(self.reconstruct)
-        #self.Offset_Angle.valueChanged.connect(self.reconstruct)
-        #self.brightness.valueChanged.connect(self.reconstruct)
-        #self.speed_W.valueChanged.connect(self.reconstruct)
-        #self.algorithm_list.currentIndexChanged.connect(self.reconstruct)
-        #self.filter_list.currentIndexChanged.connect(self.reconstruct)
+        self.COR.valueChanged.connect(self.check)
+        self.Offset_Angle.valueChanged.connect(self.check)
+        self.speed_W.valueChanged.connect(self.check)
+        self.algorithm_list.currentIndexChanged.connect(self.check)
+        self.filter_list.currentIndexChanged.connect(self.check)
 
-        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.05      #the reconstructed area will be enlarged in order to allow off axis scans
+        self.extend_FOV_fixed_ImageJ_Stream = self.extend_FOV
         self.crop_offset = 0        #needed for proper volume cropping
+        self.new = 1
+
+        #### from tomostream.py, nikitinvv git, micha
+
+        # pva type channel that contains projection and metadata
+        self.pva_structure = pva.Channel('PCO1600:Pva1:Image')
+
+        # create pva type pv for reconstruction by copying metadata from the data pv, but replacing the sizes
+        # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
+        #pva_image_data = self.pva_structure.get('')
+        #pva_image_dict = pva_image_data.getStructureDict()
+        pva_image_dict = {'value': ({'booleanValue': [pva.pvaccess.ScalarType.BOOLEAN], 'byteValue':
+            [pva.pvaccess.ScalarType.BYTE], 'shortValue': [pva.pvaccess.ScalarType.SHORT], 'intValue':
+            [pva.pvaccess.ScalarType.INT], 'longValue': [pva.pvaccess.ScalarType.LONG], 'ubyteValue':
+            [pva.pvaccess.ScalarType.UBYTE], 'ushortValue': [pva.pvaccess.ScalarType.USHORT], 'uintValue':
+            [pva.pvaccess.ScalarType.UINT], 'ulongValue': [pva.pvaccess.ScalarType.ULONG], 'floatValue':
+            [pva.pvaccess.ScalarType.FLOAT], 'doubleValue': [pva.pvaccess.ScalarType.DOUBLE]},), 'codec':
+            {'name': pva.pvaccess.ScalarType.STRING, 'parameters': ()}, 'compressedSize':
+            pva.pvaccess.ScalarType.LONG, 'uncompressedSize': pva.pvaccess.ScalarType.LONG, 'dimension':
+            [{'size': pva.pvaccess.ScalarType.INT, 'offset': pva.pvaccess.ScalarType.INT, 'fullSize':
+                pva.pvaccess.ScalarType.INT, 'binning': pva.pvaccess.ScalarType.INT, 'reverse':
+                pva.pvaccess.ScalarType.BOOLEAN}], 'uniqueId': pva.pvaccess.ScalarType.INT, 'dataTimeStamp':
+            {'secondsPastEpoch': pva.pvaccess.ScalarType.LONG, 'nanoseconds': pva.pvaccess.ScalarType.INT,
+             'userTag': pva.pvaccess.ScalarType.INT}, 'attribute':
+            [{'name': pva.pvaccess.ScalarType.STRING, 'value': (), 'descriptor': pva.pvaccess.ScalarType.STRING,
+              'sourceType': pva.pvaccess.ScalarType.INT, 'source': pva.pvaccess.ScalarType.STRING}], 'descriptor':
+            pva.pvaccess.ScalarType.STRING, 'alarm': {'severity': pva.pvaccess.ScalarType.INT, 'status':
+            pva.pvaccess.ScalarType.INT, 'message': pva.pvaccess.ScalarType.STRING}, 'timeStamp':
+            {'secondsPastEpoch': pva.pvaccess.ScalarType.LONG, 'nanoseconds': pva.pvaccess.ScalarType.INT, 'userTag':
+                pva.pvaccess.ScalarType.INT}, 'display': {'limitLow': pva.pvaccess.ScalarType.DOUBLE, 'limitHigh':
+            pva.pvaccess.ScalarType.DOUBLE, 'description': pva.pvaccess.ScalarType.STRING, 'format':
+            pva.pvaccess.ScalarType.STRING, 'units': pva.pvaccess.ScalarType.STRING}}
+
+        self.pv_rec = pva.PvObject(pva_image_dict)
+        self.pvaServer = pva.PvaServer('BAMline:CTReco', self.pv_rec)
+        self.pvaServer.start()
+
+
+
+    def check(self):
+
+         if self.auto_update.isChecked():
+             self.reconstruct()
+         return
 
     def buttons_deactivate_all(self):
         self.spinBox_ringradius.setEnabled(False)
@@ -53,7 +98,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_number.setEnabled(False)
         self.COR.setEnabled(False)
         self.Offset_Angle.setEnabled(False)
-        self.brightness.setEnabled(False)
         self.speed_W.setEnabled(False)
         self.pushReconstruct.setEnabled(False)
         self.algorithm_list.setEnabled(False)
@@ -79,7 +123,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_number.setEnabled(True)
         self.COR.setEnabled(True)
         self.Offset_Angle.setEnabled(True)
-        self.brightness.setEnabled(True)
         self.speed_W.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
         self.algorithm_list.setEnabled(True)
@@ -104,34 +147,33 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_deactivate_all()
 
         #ask for hdf5-file
-        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms")
+        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "/mnt/raid/CT/2022/2022_01/Markoetter/J1_anode_half_cell/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/")
         self.path_klick = path_klick[0]
-        print(self.path_klick)
+        print('path klicked: ', self.path_klick)
 
         #analyse and cut the path in pieces
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 1: 1]
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
-        print(self.path_in, self.namepart, self.filetype)
+        print('chopped path: ',self.path_in,'  ', self.namepart,'  ', self.filetype)
 
         #link a volume to the hdf-file
         f = h5py.File(self.path_klick, 'r')
         self.vol_proxy = f['/entry/data/data']
-        print('volume size: ', self.vol_proxy.shape)
+        print('raw data volume size: ', self.vol_proxy.shape)
 
         #get the image dimensions and prefill slice number
         self.slice_number.setMaximum(self.vol_proxy.shape[1]-1)
         self.slice_number.setMinimum(0)
         self.slice_number.setValue(round(self.vol_proxy.shape[1]/2))
-        print(self.slice_number.value())
+        print('set middle height as slice number:  ', self.slice_number.value())
         self.slice_number.setEnabled(True)
 
         #get rotation angles
         self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
         self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value()])
-        print(self.graph.shape)
-        print(self.graph)
+        print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
 
         #find rotation start
         i = 0
@@ -148,15 +190,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
     def load(self):
-        print(self.spinBox_number_FFs.value())
+        self.buttons_deactivate_all()
+
         FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
         FFmean = numpy.mean(FFs, axis=0)
-        print(FFmean.shape)
+        print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
         Sino = self.vol_proxy[self.spinBox_number_FFs.value() : -self.spinBox_number_FFs.value(), self.slice_number.value(), :]
         self.Norm = numpy.divide(Sino -self.spinBox_DF.value(), FFmean -self.spinBox_DF.value())
-        print(self.Norm.shape)
+        print('sinogram shape', self.Norm.shape)
 
-        self.w = self.graph
+        self.w = self.graph     #no need to load the angles each time a new slice is picked
 
 
         #Ring artifact handling
@@ -173,9 +216,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             #apply correction map for ring handling
             i=0
-            while i < self.A.shape[0]:
-                self.A[i, :, :] = numpy.uint16(numpy.divide(self.A[i, :, :], correction_map))
-                self.progressBar.setValue((i + 1) * 100 / self.A.shape[0])
+            while i < self.Norm.shape[0]:
+                self.Norm[i, :, :] = numpy.uint16(numpy.divide(self.Norm[i, :, :], correction_map))
+                self.progressBar.setValue((i + 1) * 100 / self.Norm.shape[0])
                 QtWidgets.QApplication.processEvents()
                 i = i+1
 
@@ -186,12 +229,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_last.setValue(self.vol_proxy.shape[1]-1)
 
         #prefill rotation-speed[°/img]
-        print('found angular values for ',self.w.shape, 'projections')
-        print(self.w)
-        poly_coeff =  numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
-        print('Plynom coefficients',poly_coeff)
+        #print('found angular values for ',self.w.shape[0], 'projections',self.w)
+
+        #Polynom fit for the angles
+        poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
+        print('Polynom coefficients',poly_coeff, '   Detected angular step per image: ')
         self.speed_W.setValue(poly_coeff[0])
-        print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
+        print('Last projection at 0 degree/still speeding up: image number', self.last_zero_proj)
 
         time.sleep(5)
 
@@ -200,7 +244,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_activate_reco()
         #self.buttons_activate_crop_volume()
         #self.buttons_activate_reco_all()
-        print('Loading/Normalizing complete!')
+        print('Loading/changing slice complete!')
 
         self.reconstruct()
 
@@ -212,7 +256,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_deactivate_all()
 
         QtWidgets.QApplication.processEvents()
-        print('def reconstruct')
+        #print('def reconstruct')
 
         self.full_size = self.Norm.shape[1]
         self.number_of_projections = self.Norm.shape[0]
@@ -225,28 +269,25 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.number_of_projections * self.speed_W.value() >= 270:
             self.number_of_used_projections = round(360 / self.speed_W.value())
         else:
-            print('smaller than 3/2 Pi')
+            #print('smaller than 3/2 Pi')
             self.number_of_used_projections = round(180 / self.speed_W.value())
-        print('number of used projections', self.number_of_used_projections)
+        print('number of projections used for reconstruction (omitting those above 180°/360°: )', self.number_of_used_projections)
 
         #create list with x-positions of projections
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
-        print('x_list ',new_list.shape)
+        #print('create x_list: ',new_list.shape)
 
         #create list with all projection angles
-        center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
-        print('COR_list ',len(center_list))
+        center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
+        #print('create COR_list: ',len(center_list))
 
         #create one sinogram in the form [z, y, x]
         transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.Norm.shape[0]), 1, self.full_size), dtype=float)
-        print('created transposed_sinos', transposed_sinos.shape)
-        print(self.last_zero_proj, self.Norm.shape[0], self.number_of_used_projections, self.slice_number.value(), self.Norm.shape[1])
-        #transposed_sinos[:,0,:] = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), self.slice_number.value(),:]
         transposed_sinos[:,0,:] = self.Norm[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm.shape[0]),:]
-        print('transposed_sinos_shape', transposed_sinos.shape)
+        #print('transposed_sinos_shape', transposed_sinos.shape)
 
         #extend data with calculated parameter, compute logarithm, remove NaN-values
-        extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
+        extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size), mode='edge')
         extended_sinos = tomopy.minus_log(extended_sinos)
         extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
         extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
@@ -254,6 +295,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #apply phase retrieval if desired
         if self.checkBox_phase_2.isChecked() == True:
             extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
+            print('applying phase contrast')
 
         #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
@@ -264,22 +306,32 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                                   filter_name=self.filter_list.currentText())
 
         #cut reconstructed slice to original size
-        slices = slices[:,round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2) , round(self.extend_FOV * self.full_size /2) : -round(self.extend_FOV * self.full_size /2)]
+        slices = slices[:,round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) , round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2)]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
         original_reconstruction = slices[0, :, :]
 
+
+        if self.new == 1: #set image dimensions only for the first time
+            self.pv_rec['dimension'] = [{'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1},
+                                       {'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1}]
+            self.new = 0
+
+        # write result to pv
+        self.pv_rec['value'] = ({'floatValue': original_reconstruction.flatten()},)
+
         #find and display minimum and maximum values in reconstructed slice
-        print(numpy.amin(original_reconstruction))
-        print(numpy.amax(original_reconstruction))
+        print('minimum value found: ', numpy.amin(original_reconstruction), '     maximum value found: ',numpy.amax(original_reconstruction))
+
         self.min.setText(str(numpy.amin(original_reconstruction)))
         self.max.setText(str(numpy.amax(original_reconstruction)))
-        print('reconstructions done')
+        print('reconstruction of slice is done')
 
+        #This might be obsolete if users are happy with ImageJ
         #display reconstructed slice
-        myarray = (original_reconstruction - numpy.amin(original_reconstruction)) * self.brightness.value() / (numpy.amax(original_reconstruction) - numpy.amin(original_reconstruction))
-        myarray = myarray.repeat(2, axis=0).repeat(2, axis=1)
-        yourQImage = qimage2ndarray.array2qimage(myarray)
-        self.test_reco.setPixmap(QPixmap(yourQImage))
+        #myarray = (original_reconstruction - numpy.amin(original_reconstruction)) * self.brightness.value() / (numpy.amax(original_reconstruction) - numpy.amin(original_reconstruction))
+        #myarray = myarray.repeat(2, axis=0).repeat(2, axis=1)
+        #yourQImage = qimage2ndarray.array2qimage(myarray)
+        #self.test_reco.setPixmap(QPixmap(yourQImage))
 
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
@@ -298,6 +350,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ask for the output path and create it
         self.path_out_reconstructed_ask = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder for reconstructions.', self.path_klick)
 
+        self.folder_name = self.namepart
+
         #create a folder when saving reconstructed volume as tif-files
         if self.save_tiff.isChecked() == True:
             self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name
@@ -305,15 +359,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.save_hdf5.isChecked() == True:
             self.path_out_reconstructed_full = self.path_out_reconstructed_ask
 
-        self.full_size = self.A.shape[2]
-        self.number_of_projections = self.A.shape[0]
-        print('X-size', self.A.shape[2])
-        print('Nr of projections', self.A.shape[0])
-        print('Nr of slices', self.A.shape[1])
 
-        #calculate extension of projections to the sides
-        self.extend_FOV = 2* (abs(self.COR.value() - self.A.shape[2]/2))/ (1 * self.A.shape[2]) + 0.05    # extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for half sided 360 degree scan!!!)
-        print('extend_FOV ', self.extend_FOV)
 
         #check if 180° or 360°-scan
         if self.number_of_projections * self.speed_W.value() >= 270:
@@ -358,13 +404,20 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #divide volume into blocks and reconstruct them one by one in order to save RAM
         i = 0
-        while (i < math.ceil(self.A.shape[1] / self.block_size)):
+        while (i < math.ceil(self.vol_proxy.shape[1] / self.block_size)):       #Need to fix the rest of slices
 
-            print('Reconstructing block', i + 1, 'of', math.ceil(self.A.shape[1] / self.block_size))
+            print('Reconstructing block', i + 1, 'of', math.ceil(self.vol_proxy.shape[1] / self.block_size))
+
+            FFs_vol = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, i * self.block_size: (i + 1) * self.block_size, :]
+            FFmean_vol = numpy.mean(FFs_vol, axis=0)
+            print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean_vol.shape)
+            Sino_vol = self.vol_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), i * self.block_size: (i + 1) * self.block_size, :]
+            self.Norm_vol = numpy.divide(Sino_vol - self.spinBox_DF.value(), FFmean_vol - self.spinBox_DF.value())
+            print('sinogram shape', self.Norm_vol.shape)
 
             #extend data, take logarithm, remove NaN-values
             ###extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
-            extended_sinos = self.A[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
+            extended_sinos = self.Norm_vol[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm_vol.shape[0]), :, :]
 
             extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
@@ -407,10 +460,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 # write the reconstructed block to disk as TIF-file
                 a = 1
                 while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
-                    self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.A.shape[1])
+                    self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.vol_proxy.shape[1])
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
-                    filename2 = self.path_out_reconstructed_full + self.namepart + str(
+                    filename2 = self.path_out_reconstructed_full + self.namepart + '_' + str(
                         a + self.crop_offset + i * self.block_size).zfill(4) + '.tif'
                     print('Writing Reconstructed Slices:', filename2)
                     slice_save = slices_save[a - 1, :, :]
@@ -421,18 +474,18 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             if self.save_hdf5.isChecked() == True:
                 if i == 0:
                     # create an an hdf5-file and write the first reconstructed block into it
-                    with h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w')  as f:
+                    with h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w') as f:
                         f.create_dataset("Volume", data=slices_save, maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
                 else:
                     # write the subsequent blocks into the hdf5-file
-                    self.progressBar.setValue((i * self.block_size) * 100 / self.A.shape[1])
+                    self.progressBar.setValue((i * self.block_size) * 100 / self.vol_proxy.shape[1])
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
                     f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'r+')
-                    vol_proxy = f['Volume']
-                    print('volume_proxy.shape', vol_proxy.shape)
-                    vol_proxy.resize((vol_proxy.shape[0] + slices_save.shape[0]), axis=0)
-                    vol_proxy[i * self.block_size : i * self.block_size + slices_save.shape[0] ,:,:] = slices_save
+                    vol_proxy_save = f['Volume']
+                    print('volume_proxy_save.shape', vol_proxy_save.shape)
+                    vol_proxy_save.resize((vol_proxy_save.shape[0] + slices_save.shape[0]), axis=0)
+                    vol_proxy_save[i * self.block_size : i * self.block_size + slices_save.shape[0] ,:,:] = slices_save
 
 
             i = i + 1
