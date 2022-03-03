@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>271</width>
-    <height>837</height>
+    <width>268</width>
+    <height>838</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -280,6 +280,9 @@
       </item>
       <item row="7" column="0">
        <widget class="QTextBrowser" name="min">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="maximumSize">
          <size>
           <width>119</width>
@@ -322,6 +325,9 @@
       </item>
       <item row="7" column="1">
        <widget class="QTextBrowser" name="max">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="maximumSize">
          <size>
           <width>119</width>
@@ -409,25 +415,6 @@
     </item>
     <item row="2" column="0">
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="4" column="1">
-       <widget class="QSpinBox" name="slice_number">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximum">
-         <number>5000</number>
-        </property>
-        <property name="value">
-         <number>50</number>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="1">
        <widget class="QSpinBox" name="spinBox_ringradius">
         <property name="enabled">
@@ -881,15 +868,26 @@
        </widget>
       </item>
       <item row="4" column="0">
-       <widget class="QPushButton" name="go_to_slice">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
+       <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>go_to_slice</string>
+         <string>Slice</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QSpinBox" name="slice_number">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="value">
+         <number>30</number>
         </property>
        </widget>
       </item>
@@ -919,8 +917,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>271</width>
-     <height>20</height>
+     <width>268</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>
@@ -929,7 +927,7 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="save_tif_hdf5"/>
   <buttongroup name="buttonGroup16_32bit"/>
+  <buttongroup name="save_tif_hdf5"/>
  </buttongroups>
 </ui>

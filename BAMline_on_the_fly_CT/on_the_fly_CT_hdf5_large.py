@@ -1,19 +1,16 @@
 # On-the-fly-CT Reco
-version =  "Version 2021.12.22 b"
+version =  "Version 2022.03.03 a"
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUiType
 from PIL import Image
 import h5py
-import matplotlib.pyplot as plt
 import tomopy
 import math
 import time
 import os
 import csv
-import qimage2ndarray
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva
 
@@ -30,16 +27,18 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #connect buttons to actions
         self.pushLoad.clicked.connect(self.set_path)
-        self.go_to_slice.clicked.connect(self.load)
         self.pushReconstruct.clicked.connect(self.reconstruct)
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
-        #self.push_Crop_volume.clicked.connect(self.crop_volume)
-        #self.slice_number.valueChanged.connect(self.reconstruct)
+        self.slice_number.valueChanged.connect(self.check)
         self.COR.valueChanged.connect(self.check)
         self.Offset_Angle.valueChanged.connect(self.check)
         self.speed_W.valueChanged.connect(self.check)
         self.algorithm_list.currentIndexChanged.connect(self.check)
         self.filter_list.currentIndexChanged.connect(self.check)
+        self.doubleSpinBox_distance_2.valueChanged.connect(self.check)
+        self.doubleSpinBox_Energy_2.valueChanged.connect(self.check)
+        self.doubleSpinBox_alpha_2.valueChanged.connect(self.check)
+        self.checkBox_phase_2.stateChanged.connect(self.check)
 
         self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.05      #the reconstructed area will be enlarged in order to allow off axis scans
@@ -48,7 +47,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.new = 1
 
         #### from tomostream.py, nikitinvv git, micha
-
         # pva type channel that contains projection and metadata
         self.pva_structure = pva.Channel('PCO1600:Pva1:Image')
 
@@ -164,27 +162,35 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('raw data volume size: ', self.vol_proxy.shape)
 
         #get the image dimensions and prefill slice number
+        print('self.vol_proxy.shape[1] ', self.vol_proxy.shape[1])
+        print('round(self.vol_proxy.shape[1]/2) ', round(self.vol_proxy.shape[1]/2))
+
         self.slice_number.setMaximum(self.vol_proxy.shape[1]-1)
+        print('set Maximum')
         self.slice_number.setMinimum(0)
-        self.slice_number.setValue(round(self.vol_proxy.shape[1]/2))
+        print('set Minimum')
+        time.sleep(1)
+        self.slice_number.setValue(round(self.vol_proxy.shape[1]/2))    # be careful with an infinite loop when setValue actually triggers valueChanged. Therefore, auto_update starts off
         print('set middle height as slice number:  ', self.slice_number.value())
         self.slice_number.setEnabled(True)
 
         #get rotation angles
         self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
+        print('self.line_proxy', self.line_proxy)
         self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value()])
         print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
 
         #find rotation start
         i = 0
         while i < self.graph.shape[0]:
-            if round(self.graph[i]) == 0:  # notice the last projection at zero degree
+            if round(self.graph[i]) == 0:  # notice the last projection at below 0.5°
                 self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
 
         print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
 
         self.COR.setValue(round(self.vol_proxy.shape[2] / 2))
+        print('COR.setValue', round(self.vol_proxy.shape[2] / 2))
 
         self.load()
 
@@ -198,9 +204,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         Sino = self.vol_proxy[self.spinBox_number_FFs.value() : -self.spinBox_number_FFs.value(), self.slice_number.value(), :]
         self.Norm = numpy.divide(Sino -self.spinBox_DF.value(), FFmean -self.spinBox_DF.value())
         print('sinogram shape', self.Norm.shape)
-
+        self.slice_in_ram = self.slice_number.value()
+        print('set Slice in RAM')
         self.w = self.graph     #no need to load the angles each time a new slice is picked
-
+        print('set angles in self.w')
 
         #Ring artifact handling
 
@@ -221,23 +228,24 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 self.progressBar.setValue((i + 1) * 100 / self.Norm.shape[0])
                 QtWidgets.QApplication.processEvents()
                 i = i+1
-
+        print('did not do ring handling')
 
         #prefill slice number, COR, cropping
 
         self.spinBox_first.setValue(0)
         self.spinBox_last.setValue(self.vol_proxy.shape[1]-1)
+        print('set possible crop range')
 
         #prefill rotation-speed[°/img]
         #print('found angular values for ',self.w.shape[0], 'projections',self.w)
 
         #Polynom fit for the angles
         poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
-        print('Polynom coefficients',poly_coeff, '   Detected angular step per image: ')
+        print('Polynom coefficients',poly_coeff, '   Detected angular step per image: ', poly_coeff[0])
         self.speed_W.setValue(poly_coeff[0])
         print('Last projection at 0 degree/still speeding up: image number', self.last_zero_proj)
 
-        time.sleep(5)
+        time.sleep(1) #???
 
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
@@ -251,6 +259,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
     def reconstruct(self):
+
+        if self.slice_in_ram != self.slice_number.value():
+            self.load()
 
         # grey out the buttons while program is busy
         self.buttons_deactivate_all()
