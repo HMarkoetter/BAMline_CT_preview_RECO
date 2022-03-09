@@ -1,5 +1,7 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.03.03 a"
+version =  "Version 2022.03.09 a"
+#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer
+#Lookout for channel "BAMline:CTReco"
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -12,7 +14,8 @@ import time
 import os
 import csv
 from scipy.ndimage.filters import gaussian_filter, median_filter
-import pvaccess as pva
+from scipy.signal import medfilt
+import pvaccess as pva      #to install search for "pvapy"
 
 
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_panel.ui')  # connect to the GUI for the program
@@ -30,6 +33,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct.clicked.connect(self.reconstruct)
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
         self.slice_number.valueChanged.connect(self.check)
+        self.spinBox_ringradius.valueChanged.connect(self.check)
         self.COR.valueChanged.connect(self.check)
         self.Offset_Angle.valueChanged.connect(self.check)
         self.speed_W.valueChanged.connect(self.check)
@@ -155,6 +159,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 1: 1]
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
         print('chopped path: ',self.path_in,'  ', self.namepart,'  ', self.filetype)
+        self.Sample.setText(self.path_klick)
 
         #link a volume to the hdf-file
         f = h5py.File(self.path_klick, 'r')
@@ -203,8 +208,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
         Sino = self.vol_proxy[self.spinBox_number_FFs.value() : -self.spinBox_number_FFs.value(), self.slice_number.value(), :]
         self.Norm = numpy.divide(Sino -self.spinBox_DF.value(), FFmean -self.spinBox_DF.value())
-        print('sinogram shape', self.Norm.shape)
+        print('Norm shape', self.Norm.shape, self.Norm[100,100])
         self.slice_in_ram = self.slice_number.value()
+        self.ringradius_in_RAM = self.spinBox_ringradius.value()
         print('set Slice in RAM')
         self.w = self.graph     #no need to load the angles each time a new slice is picked
         print('set angles in self.w')
@@ -212,33 +218,35 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #Ring artifact handling
 
         if self.spinBox_ringradius.value() != 0:
+            self.proj_sum = numpy.mean(self.Norm, axis = 0)
+            self.proj_sum_2d = numpy.zeros((1, self.proj_sum.shape[0]), dtype = numpy.float32)
+            self.proj_sum_2d[0,:] = self.proj_sum
             print('proj_sum dimensions', self.proj_sum.shape)
+            print('proj_sum_2d dimensions', self.proj_sum_2d.shape)
 
-            #correction map = (sum of projections) / median filter of (sum of projections)
-            proj_sum_filtered = median_filter(self.proj_sum, size = self.spinBox_ringradius.value())
-            correction_map = numpy.divide(self.proj_sum, proj_sum_filtered)
+            proj_sum_filtered = median_filter(self.proj_sum_2d, size = (1,self.spinBox_ringradius.value()), mode='nearest')
+            print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
+            correction_map = numpy.divide(self.proj_sum_2d, proj_sum_filtered)
             correction_map = numpy.clip(correction_map, 0.9, 1.1)
-
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
 
-            #apply correction map for ring handling
             i=0
             while i < self.Norm.shape[0]:
-                self.Norm[i, :, :] = numpy.uint16(numpy.divide(self.Norm[i, :, :], correction_map))
+                self.Norm[i, :] = numpy.divide(self.Norm[i, :], correction_map[0,:])
                 self.progressBar.setValue((i + 1) * 100 / self.Norm.shape[0])
                 QtWidgets.QApplication.processEvents()
                 i = i+1
-        print('did not do ring handling')
+            print('Norm.shape', self.Norm.shape)
+            print('finished ring handling')
+        else:
+            print('did not do ring handling')
 
-        #prefill slice number, COR, cropping
-
+        #prefill cropping
         self.spinBox_first.setValue(0)
         self.spinBox_last.setValue(self.vol_proxy.shape[1]-1)
         print('set possible crop range')
 
         #prefill rotation-speed[°/img]
-        #print('found angular values for ',self.w.shape[0], 'projections',self.w)
-
         #Polynom fit for the angles
         poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
         print('Polynom coefficients',poly_coeff, '   Detected angular step per image: ', poly_coeff[0])
@@ -260,95 +268,95 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
     def reconstruct(self):
 
-        if self.slice_in_ram != self.slice_number.value():
+        if self.slice_in_ram != self.slice_number.value() or self.ringradius_in_RAM != self.spinBox_ringradius.value():
             self.load()
-
-        # grey out the buttons while program is busy
-        self.buttons_deactivate_all()
-
-        QtWidgets.QApplication.processEvents()
-        #print('def reconstruct')
-
-        self.full_size = self.Norm.shape[1]
-        self.number_of_projections = self.Norm.shape[0]
-
-        #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for off center 360 degree scan!!!)
-        self.extend_FOV = 2* (abs(self.COR.value() - self.Norm.shape[1]/2))/ (1 * self.Norm.shape[1]) + 0.05
-        print('extend_FOV ', self.extend_FOV)
-
-        #check if the scan was 180° or 360°
-        if self.number_of_projections * self.speed_W.value() >= 270:
-            self.number_of_used_projections = round(360 / self.speed_W.value())
         else:
-            #print('smaller than 3/2 Pi')
-            self.number_of_used_projections = round(180 / self.speed_W.value())
-        print('number of projections used for reconstruction (omitting those above 180°/360°: )', self.number_of_used_projections)
+            # grey out the buttons while program is busy
+            self.buttons_deactivate_all()
 
-        #create list with x-positions of projections
-        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
-        #print('create x_list: ',new_list.shape)
+            QtWidgets.QApplication.processEvents()
+            #print('def reconstruct')
 
-        #create list with all projection angles
-        center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
-        #print('create COR_list: ',len(center_list))
+            self.full_size = self.Norm.shape[1]
+            self.number_of_projections = self.Norm.shape[0]
 
-        #create one sinogram in the form [z, y, x]
-        transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.Norm.shape[0]), 1, self.full_size), dtype=float)
-        transposed_sinos[:,0,:] = self.Norm[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm.shape[0]),:]
-        #print('transposed_sinos_shape', transposed_sinos.shape)
+            #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for off center 360 degree scan!!!)
+            self.extend_FOV = 2* (abs(self.COR.value() - self.Norm.shape[1]/2))/ (1 * self.Norm.shape[1]) + 0.05
+            print('extend_FOV ', self.extend_FOV)
 
-        #extend data with calculated parameter, compute logarithm, remove NaN-values
-        extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size), mode='edge')
-        extended_sinos = tomopy.minus_log(extended_sinos)
-        extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
-        extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
+            #check if the scan was 180° or 360°
+            if self.number_of_projections * self.speed_W.value() >= 270:
+                self.number_of_used_projections = round(360 / self.speed_W.value())
+            else:
+                #print('smaller than 3/2 Pi')
+                self.number_of_used_projections = round(180 / self.speed_W.value())
+            print('number of projections used for reconstruction (omitting those above 180°/360°: )', self.number_of_used_projections)
 
-        #apply phase retrieval if desired
-        if self.checkBox_phase_2.isChecked() == True:
-            extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
-            print('applying phase contrast')
+            #create list with x-positions of projections
+            new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
+            #print('create x_list: ',new_list.shape)
 
-        #reconstruct one slice
-        if self.algorithm_list.currentText() == 'FBP_CUDA':
-            options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
-            slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra, options=options)
-        else:
-            slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
-                                  filter_name=self.filter_list.currentText())
+            #create list with all projection angles
+            center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
+            #print('create COR_list: ',len(center_list))
 
-        #cut reconstructed slice to original size
-        slices = slices[:,round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) , round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2)]
-        slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
-        original_reconstruction = slices[0, :, :]
+            #create one sinogram in the form [z, y, x]
+            transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.Norm.shape[0]), 1, self.full_size), dtype=float)
+            transposed_sinos[:,0,:] = self.Norm[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm.shape[0]),:]
+            #print('transposed_sinos_shape', transposed_sinos.shape)
+
+            #extend data with calculated parameter, compute logarithm, remove NaN-values
+            extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size), mode='edge')
+            extended_sinos = tomopy.minus_log(extended_sinos)
+            extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
+            extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
+
+            #apply phase retrieval if desired
+            if self.checkBox_phase_2.isChecked() == True:
+                extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
+                print('applying phase contrast')
+
+            #reconstruct one slice
+            if self.algorithm_list.currentText() == 'FBP_CUDA':
+                options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra, options=options)
+            else:
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
+                                      filter_name=self.filter_list.currentText())
+
+            #cut reconstructed slice to original size
+            slices = slices[:,round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) , round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2)]
+            slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
+            original_reconstruction = slices[0, :, :]
 
 
-        if self.new == 1: #set image dimensions only for the first time
-            self.pv_rec['dimension'] = [{'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1},
-                                       {'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1}]
-            self.new = 0
+            if self.new == 1: #set image dimensions only for the first time
+                self.pv_rec['dimension'] = [{'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1},
+                                           {'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1}]
+                self.new = 0
 
-        # write result to pv
-        self.pv_rec['value'] = ({'floatValue': original_reconstruction.flatten()},)
+            # write result to pv
+            self.pv_rec['value'] = ({'floatValue': original_reconstruction.flatten()},)
 
-        #find and display minimum and maximum values in reconstructed slice
-        print('minimum value found: ', numpy.amin(original_reconstruction), '     maximum value found: ',numpy.amax(original_reconstruction))
+            #find and display minimum and maximum values in reconstructed slice
+            print('minimum value found: ', numpy.amin(original_reconstruction), '     maximum value found: ',numpy.amax(original_reconstruction))
 
-        self.min.setText(str(numpy.amin(original_reconstruction)))
-        self.max.setText(str(numpy.amax(original_reconstruction)))
-        print('reconstruction of slice is done')
+            self.min.setText(str(numpy.amin(original_reconstruction)))
+            self.max.setText(str(numpy.amax(original_reconstruction)))
+            print('reconstruction of slice is done')
 
-        #This might be obsolete if users are happy with ImageJ
-        #display reconstructed slice
-        #myarray = (original_reconstruction - numpy.amin(original_reconstruction)) * self.brightness.value() / (numpy.amax(original_reconstruction) - numpy.amin(original_reconstruction))
-        #myarray = myarray.repeat(2, axis=0).repeat(2, axis=1)
-        #yourQImage = qimage2ndarray.array2qimage(myarray)
-        #self.test_reco.setPixmap(QPixmap(yourQImage))
+            #This might be obsolete if users are happy with ImageJ
+            #display reconstructed slice
+            #myarray = (original_reconstruction - numpy.amin(original_reconstruction)) * self.brightness.value() / (numpy.amax(original_reconstruction) - numpy.amin(original_reconstruction))
+            #myarray = myarray.repeat(2, axis=0).repeat(2, axis=1)
+            #yourQImage = qimage2ndarray.array2qimage(myarray)
+            #self.test_reco.setPixmap(QPixmap(yourQImage))
 
-        #ungrey the buttons for further use of the program
-        self.buttons_activate_load()
-        self.buttons_activate_reco()
-        self.buttons_activate_crop_volume()
-        self.buttons_activate_reco_all()
+            #ungrey the buttons for further use of the program
+            self.buttons_activate_load()
+            self.buttons_activate_reco()
+            self.buttons_activate_crop_volume()
+            self.buttons_activate_reco_all()
 
 
     def reconstruct_all(self):
@@ -425,6 +433,30 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             Sino_vol = self.vol_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), i * self.block_size: (i + 1) * self.block_size, :]
             self.Norm_vol = numpy.divide(Sino_vol - self.spinBox_DF.value(), FFmean_vol - self.spinBox_DF.value())
             print('sinogram shape', self.Norm_vol.shape)
+
+            # Ring artifact handling
+
+            if self.spinBox_ringradius.value() != 0:
+                self.proj_sum = numpy.mean(self.Norm_vol, axis=0)
+                print('proj_sum dimensions', self.proj_sum.shape)
+                proj_sum_filtered = median_filter(self.proj_sum, size= self.spinBox_ringradius.value(), mode='nearest')
+                print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
+                correction_map_vol = numpy.divide(self.proj_sum, proj_sum_filtered)
+                correction_map_vol = numpy.clip(correction_map_vol, 0.9, 1.1)
+                print('correction_map_vol dimensions', correction_map_vol.shape, 'correction_map min vs max',
+                      numpy.amin(correction_map_vol), numpy.amax(correction_map_vol))
+
+                j = 0
+                while j < self.Norm_vol.shape[0]:
+                    self.Norm_vol[j, :,:] = numpy.divide(self.Norm_vol[j, :,:], correction_map_vol)
+                    j = j + 1
+                print('Norm_vol.shape', self.Norm_vol.shape)
+                print('finished ring handling')
+            else:
+                print('did not do ring handling')
+
+
+
 
             #extend data, take logarithm, remove NaN-values
             ###extended_sinos = self.A[0:min(self.number_of_used_projections, self.A.shape[0]), i * self.block_size: (i + 1) * self.block_size, :]
