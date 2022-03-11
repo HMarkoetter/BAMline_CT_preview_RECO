@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.03.09 a"
+version =  "Version 2022.03.11 a"
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer
 #Lookout for channel "BAMline:CTReco"
 
@@ -52,7 +52,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #### from tomostream.py, nikitinvv git, micha
         # pva type channel that contains projection and metadata
-        self.pva_structure = pva.Channel('PCO1600:Pva1:Image')
+        #self.pva_structure = pva.Channel('PCO1600:Pva1:Image')
 
         # create pva type pv for reconstruction by copying metadata from the data pv, but replacing the sizes
         # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
@@ -92,6 +92,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
              self.reconstruct()
          return
 
+
+
     def buttons_deactivate_all(self):
         self.spinBox_ringradius.setEnabled(False)
         self.spinBox_DF.setEnabled(False)
@@ -117,6 +119,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct_all.setEnabled(False)
         self.int_low.setEnabled(False)
         self.int_high.setEnabled(False)
+        self.hdf_chunking_x.setEnabled(False)
+        self.hdf_chunking_y.setEnabled(False)
     def buttons_activate_load(self):
         self.spinBox_ringradius.setEnabled(True)
         self.spinBox_DF.setEnabled(True)
@@ -138,18 +142,28 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct_all.setEnabled(True)
         self.int_low.setEnabled(True)
         self.int_high.setEnabled(True)
+        self.hdf_chunking_x.setEnabled(True)
+        self.hdf_chunking_y.setEnabled(True)
+
+
+
     def buttons_activate_crop_volume(self):
         self.spinBox_first.setEnabled(True)
         self.spinBox_last.setEnabled(True)
         #self.push_Crop_volume.setEnabled(True)
 
 
+
     def set_path(self):
         #grey out the buttons while program is busy
         self.buttons_deactivate_all()
+        self.pushReconstruct.setText('Busy')
+        self.pushReconstruct_all.setText('Busy\n')
+
 
         #ask for hdf5-file
-        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "/mnt/raid/CT/2022/2022_01/Markoetter/J1_anode_half_cell/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/")
+        #path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "/mnt/raid/CT/2022/2022_01/Markoetter/J1_anode_half_cell/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/")
+        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/")
         self.path_klick = path_klick[0]
         print('path klicked: ', self.path_klick)
 
@@ -198,6 +212,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('COR.setValue', round(self.vol_proxy.shape[2] / 2))
 
         self.load()
+
 
 
     def load(self):
@@ -271,8 +286,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.slice_in_ram != self.slice_number.value() or self.ringradius_in_RAM != self.spinBox_ringradius.value():
             self.load()
         else:
+
             # grey out the buttons while program is busy
             self.buttons_deactivate_all()
+            self.pushReconstruct.setText('Busy')
+            self.pushReconstruct_all.setText('Busy\n')
+
 
             QtWidgets.QApplication.processEvents()
             #print('def reconstruct')
@@ -341,8 +360,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             #find and display minimum and maximum values in reconstructed slice
             print('minimum value found: ', numpy.amin(original_reconstruction), '     maximum value found: ',numpy.amax(original_reconstruction))
 
-            self.min.setText(str(numpy.amin(original_reconstruction)))
-            self.max.setText(str(numpy.amax(original_reconstruction)))
+            #self.min.setText(str(numpy.amin(original_reconstruction)))
+            #self.max.setText(str(numpy.amax(original_reconstruction)))
             print('reconstruction of slice is done')
 
             #This might be obsolete if users are happy with ImageJ
@@ -357,11 +376,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.buttons_activate_reco()
             self.buttons_activate_crop_volume()
             self.buttons_activate_reco_all()
+            self.pushReconstruct.setText('Test')
+            self.pushReconstruct_all.setText('Reconstruct\n Volume')
+
 
 
     def reconstruct_all(self):
         #grey out the buttons while program is busy
         self.buttons_deactivate_all()
+        self.pushReconstruct.setText('Busy')
+        self.pushReconstruct_all.setText('Busy\n')
 
         QtWidgets.QApplication.processEvents()
         print('def reconstruct complete volume')
@@ -518,7 +542,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 if i == 0:
                     # create an an hdf5-file and write the first reconstructed block into it
                     with h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w') as f:
-                        f.create_dataset("Volume", data=slices_save, maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
+                        f.create_dataset("Volume", data=slices_save, chunks = (1,self.hdf_chunking_y.value(),self.hdf_chunking_x.value()), maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
                 else:
                     # write the subsequent blocks into the hdf5-file
                     self.progressBar.setValue((i * self.block_size) * 100 / self.vol_proxy.shape[1])
@@ -543,6 +567,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_activate_reco()
         self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
+        self.pushReconstruct.setText('Test')
+        self.pushReconstruct_all.setText('Reconstruct\n Volume')
         print('Done!')
 
 
