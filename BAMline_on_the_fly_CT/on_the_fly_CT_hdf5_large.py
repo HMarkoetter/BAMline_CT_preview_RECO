@@ -1,7 +1,8 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.03.11 a"
-#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer
-#Lookout for channel "BAMline:CTReco"
+version =  "Version 2022.03.14 a"
+#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
+channel_name = 'BAMline:CTReco'
+standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -81,7 +82,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             pva.pvaccess.ScalarType.STRING, 'units': pva.pvaccess.ScalarType.STRING}}
 
         self.pv_rec = pva.PvObject(pva_image_dict)
-        self.pvaServer = pva.PvaServer('BAMline:CTReco', self.pv_rec)
+        self.pvaServer = pva.PvaServer(channel_name, self.pv_rec)
         self.pvaServer.start()
 
 
@@ -144,9 +145,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.int_high.setEnabled(True)
         self.hdf_chunking_x.setEnabled(True)
         self.hdf_chunking_y.setEnabled(True)
-
-
-
     def buttons_activate_crop_volume(self):
         self.spinBox_first.setEnabled(True)
         self.spinBox_last.setEnabled(True)
@@ -162,8 +160,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
         #ask for hdf5-file
-        #path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "/mnt/raid/CT/2022/2022_01/Markoetter/J1_anode_half_cell/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/")
-        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/")
+        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
         self.path_klick = path_klick[0]
         print('path klicked: ', self.path_klick)
 
@@ -423,7 +420,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #save parameters in csv-file
         file_name_parameter = self.path_out_reconstructed_full + '/' + self.folder_name + '_parameter.csv'
         with open(file_name_parameter, mode = 'w', newline='') as parameter_file:
-            csv_writer = csv.writer(parameter_file, delimiter = ' ', quotechar=' ')
+            csv_writer = csv.writer(parameter_file, delimiter = '\t', quotechar=' ')
             csv_writer.writerow(['Path input                    ', self.path_in,' '])
             csv_writer.writerow(['Path output                   ', self.path_out_reconstructed_full,' '])
             csv_writer.writerow(['Number of used projections    ', str(self.number_of_used_projections),' '])
