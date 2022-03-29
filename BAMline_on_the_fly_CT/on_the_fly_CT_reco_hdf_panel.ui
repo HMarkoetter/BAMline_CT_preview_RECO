@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>268</width>
-    <height>902</height>
+    <height>933</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -280,8 +280,11 @@
         <property name="maximum">
          <double>65535.000000000000000</double>
         </property>
+        <property name="singleStep">
+         <double>0.010000000000000</double>
+        </property>
         <property name="value">
-         <double>-100.000000000000000</double>
+         <double>-0.100000000000000</double>
         </property>
        </widget>
       </item>
@@ -341,8 +344,11 @@
         <property name="maximum">
          <double>65535.000000000000000</double>
         </property>
+        <property name="singleStep">
+         <double>0.010000000000000</double>
+        </property>
         <property name="value">
-         <double>100.000000000000000</double>
+         <double>0.100000000000000</double>
         </property>
        </widget>
       </item>
@@ -360,6 +366,9 @@
        <widget class="QRadioButton" name="radioButton_32bit_float">
         <property name="text">
          <string>32-bit float</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
         <attribute name="buttonGroup">
          <string notr="true">buttonGroup16_32bit</string>
@@ -581,6 +590,9 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Subtracts this value from both, projection and flat field, before dividing them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>Dark Field Offset</string>
@@ -865,6 +877,9 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Subtracts this value from both, projection and flat field, before dividing them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="maximum">
          <number>65535</number>
         </property>
@@ -902,6 +917,20 @@
         </property>
         <property name="value">
          <number>50</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>back illumination</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="spinBox_back_illumination">
+        <property name="maximum">
+         <number>65535</number>
         </property>
        </widget>
       </item>
@@ -950,7 +979,7 @@ p, li { white-space: pre-wrap; }
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup16_32bit"/>
   <buttongroup name="save_tif_hdf5"/>
+  <buttongroup name="buttonGroup16_32bit"/>
  </buttongroups>
 </ui>
