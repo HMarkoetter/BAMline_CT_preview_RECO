@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.03.29 a"
+version =  "Version 2022.03.30 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -16,7 +16,6 @@ import time
 import os
 import csv
 from scipy.ndimage.filters import gaussian_filter, median_filter
-from scipy.signal import medfilt
 import pvaccess as pva      #to install search for "pvapy"
 
 
@@ -28,7 +27,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def __init__(self):
         super(On_the_fly_CT_tester, self).__init__()
         self.setupUi(self)
-        self.setWindowTitle('On_the_fly_CT_tester')
+        self.setWindowTitle('On-the-fly CT Reco')
 
         #connect buttons to actions
         self.pushLoad.clicked.connect(self.set_path)
@@ -47,6 +46,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.doubleSpinBox_Energy_2.valueChanged.connect(self.check)
         self.doubleSpinBox_alpha_2.valueChanged.connect(self.check)
         self.checkBox_phase_2.stateChanged.connect(self.check)
+        self.radioButton_32bit_float.clicked.connect(self.check)
+        self.radioButton_16bit_integer.clicked.connect(self.check)
+        self.int_low.valueChanged.connect(self.check)
+        self.int_high.valueChanged.connect(self.check)
+
 
         self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
@@ -87,6 +91,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.pv_rec = pva.PvObject(pva_image_dict)
         self.pvaServer = pva.PvaServer(channel_name, self.pv_rec)
+        self.Qchannel_name.setText(channel_name)
         self.pvaServer.start()
 
 
@@ -130,11 +135,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.int_high.setEnabled(False)
         self.hdf_chunking_x.setEnabled(False)
         self.hdf_chunking_y.setEnabled(False)
+
     def buttons_activate_load(self):
         self.spinBox_ringradius.setEnabled(True)
         self.spinBox_DF.setEnabled(True)
         self.spinBox_back_illumination.setEnabled(True)
         self.pushLoad.setEnabled(True)
+
     def buttons_activate_reco(self):
         self.slice_number.setEnabled(True)
         self.COR.setEnabled(True)
@@ -148,16 +155,24 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.doubleSpinBox_distance_2.setEnabled(True)
         self.doubleSpinBox_Energy_2.setEnabled(True)
         self.doubleSpinBox_alpha_2.setEnabled(True)
+
     def buttons_activate_reco_all(self):
         self.pushReconstruct_all.setEnabled(True)
         self.int_low.setEnabled(True)
         self.int_high.setEnabled(True)
         self.hdf_chunking_x.setEnabled(True)
         self.hdf_chunking_y.setEnabled(True)
+        self.radioButton_16bit_integer.setEnabled(True)
+        self.radioButton_32bit_float.setEnabled(True)
+        self.save_tiff.setEnabled(True)
+        self.save_hdf5.setEnabled(True)
+        self.auto_update.setEnabled(True)
+
+
     def buttons_activate_crop_volume(self):
         self.spinBox_first.setEnabled(True)
         self.spinBox_last.setEnabled(True)
-        #self.push_Crop_volume.setEnabled(True)
+        self.push_Crop_volume.setEnabled(True)
 
 
 
@@ -284,7 +299,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_activate_load()
         self.buttons_activate_reco()
         #self.buttons_activate_crop_volume()
-        #self.buttons_activate_reco_all()
+        self.buttons_activate_reco_all()
         print('Loading/changing slice complete!')
 
         self.reconstruct()
@@ -304,10 +319,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.full_size = self.Norm.shape[1]
         self.number_of_projections = self.Norm.shape[0]
-
-        #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension to both sides (for off center 360 degree scan!!!)
-        self.extend_FOV = 2* (abs(self.COR.value() - self.Norm.shape[1]/2))/ (1 * self.Norm.shape[1]) + 0.25
-        print('extend_FOV ', self.extend_FOV)
 
         #check if the scan was 180° or 360°
         if self.number_of_projections * self.speed_W.value() >= 270:
@@ -348,6 +359,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         else:
             slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
+
+        # scale with pixel size to attenuation coefficients
+        slices = slices * (10000/self.pixel_size.value())
 
         #cut reconstructed slice to original size
         #slices = slices[:,round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) , round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2) : -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size /2)]
@@ -397,7 +411,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        self.buttons_activate_crop_volume()
+        #self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         self.pushReconstruct.setText('Test')
         self.pushReconstruct_all.setText('Reconstruct\n Volume')
@@ -409,6 +423,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_deactivate_all()
         self.pushReconstruct.setText('Busy')
         self.pushReconstruct_all.setText('Busy\n')
+
+        self.progressBar.setValue(0)
+        QtCore.QCoreApplication.processEvents()
 
         QtWidgets.QApplication.processEvents()
         print('def reconstruct complete volume')
@@ -425,7 +442,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.save_hdf5.isChecked() == True:
             self.path_out_reconstructed_full = self.path_out_reconstructed_ask
 
-
+        #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension, 1.0 full extension to both sides (for off center 360 degree scans!!!)
+        self.extend_FOV = 2* (abs(self.COR.value() - self.Norm.shape[1]/2))/ (1 * self.Norm.shape[1]) #+ 0.25
+        print('extend_FOV ', self.extend_FOV)
 
         #check if 180° or 360°-scan
         if self.number_of_projections * self.speed_W.value() >= 270:
@@ -435,11 +454,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.number_of_used_projections = round(180 / self.speed_W.value())
         print('number of used projections', self.number_of_used_projections)
 
-        #create list with x-positions
+        # create list with projection angles
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
         print(new_list.shape)
 
-        #create list with projection angles
+        # create list with COR-positions
         center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
 
@@ -483,7 +502,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('sinogram shape', self.Norm_vol.shape)
 
             # Ring artifact handling
-
             if self.spinBox_ringradius.value() != 0:
                 self.proj_sum = numpy.mean(self.Norm_vol, axis=0)
                 print('proj_sum dimensions', self.proj_sum.shape)
@@ -527,6 +545,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 slices = tomopy.recon(extended_sinos, new_list, center=center_list,
                                       algorithm=self.algorithm_list.currentText(),
                                       filter_name=self.filter_list.currentText())
+
+            # scale with pixel size to attenuation coefficients
+            slices = slices * (10000 / self.pixel_size.value())
 
             #crop reconstructed data
             slices = slices[:, round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2), round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2)]
@@ -588,7 +609,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        self.buttons_activate_crop_volume()
+        #self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         self.pushReconstruct.setText('Test')
         self.pushReconstruct_all.setText('Reconstruct\n Volume')
