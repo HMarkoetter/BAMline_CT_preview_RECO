@@ -82,9 +82,9 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         # Calculate speeds for on-the-fly CT
     def calculate_speed(self):
-        self.rot_speed.display(int((self.on_the_fly_comboBox.currentText()))/(self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value()))
-        self.rot_step.display(int((self.on_the_fly_comboBox.currentText()))/(self.On_the_fly_nr_projections.value()))
-        self.duration.display((self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value())/60)
+        self.rot_speed.setValue(int((self.on_the_fly_comboBox.currentText()))/(self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value()))
+        self.rot_step.setValue(int((self.on_the_fly_comboBox.currentText()))/(self.On_the_fly_nr_projections.value()))
+        self.duration.setValue((self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value())/60)
 
 
     def generate_list(self):

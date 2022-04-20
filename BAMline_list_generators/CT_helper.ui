@@ -41,10 +41,24 @@
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_5">
-         <item row="0" column="1">
-          <widget class="QLabel" name="label_14">
+         <item row="1" column="2">
+          <widget class="QComboBox" name="on_the_fly_comboBox">
+           <item>
+            <property name="text">
+             <string>180</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>360</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_15">
            <property name="text">
-            <string>Exposure time [s]</string>
+            <string>angular range [°]</string>
            </property>
           </widget>
          </item>
@@ -64,6 +78,13 @@
            </property>
           </widget>
          </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label_14">
+           <property name="text">
+            <string>Exposure time [s]</string>
+           </property>
+          </widget>
+         </item>
          <item row="0" column="0">
           <widget class="QLabel" name="label_13">
            <property name="text">
@@ -71,61 +92,16 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
-          <widget class="QLCDNumber" name="rot_speed">
-           <property name="value" stdset="0">
-            <double>0.144000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QLabel" name="label_15">
-           <property name="text">
-            <string>angular range [°]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="2">
-          <widget class="QComboBox" name="on_the_fly_comboBox">
+         <item row="3" column="2">
+          <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
-            <property name="text">
-             <string>180</string>
-            </property>
+            <widget class="QLabel" name="label_18">
+             <property name="text">
+              <string>Scan time [min]</string>
+             </property>
+            </widget>
            </item>
-           <item>
-            <property name="text">
-             <string>360</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-         <item row="2" column="2">
-          <widget class="QLabel" name="label_18">
-           <property name="text">
-            <string>Scan time [min]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QLabel" name="label_17">
-           <property name="text">
-            <string>Rot-step [°/img]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label_16">
-           <property name="text">
-            <string>Rot-speed [°/s]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLCDNumber" name="rot_step">
-           <property name="value" stdset="0">
-            <double>0.070000000000000</double>
-           </property>
-          </widget>
+          </layout>
          </item>
          <item row="1" column="0">
           <widget class="QSpinBox" name="On_the_fly_nr_projections">
@@ -143,16 +119,80 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="2">
-          <layout class="QHBoxLayout" name="horizontalLayout">
-           <item>
-            <widget class="QLCDNumber" name="duration">
-             <property name="value" stdset="0">
-              <double>20.829999999999998</double>
-             </property>
-            </widget>
-           </item>
-          </layout>
+         <item row="4" column="0">
+          <widget class="QDoubleSpinBox" name="rot_speed">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>4</number>
+           </property>
+           <property name="maximum">
+            <double>360.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QDoubleSpinBox" name="rot_step">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>4</number>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QDoubleSpinBox" name="duration">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>2</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_16">
+           <property name="text">
+            <string>Rot-speed [°/s]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>Rot-step [°/img]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>
