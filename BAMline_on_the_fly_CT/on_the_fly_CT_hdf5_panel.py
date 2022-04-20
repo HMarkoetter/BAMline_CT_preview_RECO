@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.04.08 a"
+version =  "Version 2022.04.20 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -31,7 +31,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #connect buttons to actions
         self.pushLoad.clicked.connect(self.set_path)
-        self.pushReconstruct.clicked.connect(self.reconstruct)
+        self.pushReconstruct.clicked.connect(self.check_test_button)
         self.pushReconstruct_all.clicked.connect(self.reconstruct_all)
         self.slice_number.valueChanged.connect(self.check)
         self.spinBox_DF.valueChanged.connect(self.check)
@@ -99,10 +99,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def check(self):
 
          if self.auto_update.isChecked():
-             if self.slice_in_ram != self.slice_number.value() or self.ringradius_in_RAM != self.spinBox_ringradius.value() or self.spinBox_DF_in_ram != self.spinBox_DF.value() or self.spinBox_back_illumination_in_ram != self.spinBox_back_illumination.value():
-                 self.load()
-             else:
-                 self.reconstruct()
+             self.check_test_button()
+         return
+
+
+    def check_test_button(self):
+
+         if self.slice_in_ram != self.slice_number.value() or self.ringradius_in_RAM != self.spinBox_ringradius.value() or self.spinBox_DF_in_ram != self.spinBox_DF.value() or self.spinBox_back_illumination_in_ram != self.spinBox_back_illumination.value():
+             self.load()
+         else:
+             self.reconstruct()
          return
 
 
@@ -194,9 +200,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #analyse and cut the path in pieces
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
+        ni_htap = self.path_in[::-1]
+        self.last_folder = self.path_in[len(ni_htap) - ni_htap.find('/') - 1 :  :1]
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 1: 1]
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
-        print('chopped path: ',self.path_in,'  ', self.namepart,'  ', self.filetype)
+        print('chopped path: ',self.path_in, '  ', self.last_folder,'  ', self.namepart,'  ', self.filetype)
         self.Sample.setText(self.path_klick)
 
         #link a volume to the hdf-file
@@ -461,7 +469,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ask for the output path and create it
         self.path_out_reconstructed_ask = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select folder for reconstructions.', self.path_klick)
 
-        self.folder_name = self.namepart
+        self.folder_name = self.last_folder
 
         #create a folder when saving reconstructed volume as tif-files
         if self.save_tiff.isChecked() == True:
@@ -602,7 +610,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                     self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.vol_proxy.shape[1])
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
-                    filename2 = self.path_out_reconstructed_full + self.namepart + '_' + str(
+                    filename2 = self.path_out_reconstructed_full + self.last_folder + '_' + str(
                         a + self.crop_offset + i * self.block_size).zfill(4) + '.tif'
                     print('Writing Reconstructed Slices:', filename2)
                     slice_save = slices_save[a - 1, :, :]
