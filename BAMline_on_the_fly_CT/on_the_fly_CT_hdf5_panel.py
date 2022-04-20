@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.04.20 a"
+version =  "Version 2022.04.20 b"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -610,7 +610,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                     self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.vol_proxy.shape[1])
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
-                    filename2 = self.path_out_reconstructed_full + self.last_folder + '_' + str(
+                    filename2 = self.path_out_reconstructed_full + self.namepart + '_' + str(
                         a + self.crop_offset + i * self.block_size).zfill(4) + '.tif'
                     print('Writing Reconstructed Slices:', filename2)
                     slice_save = slices_save[a - 1, :, :]
