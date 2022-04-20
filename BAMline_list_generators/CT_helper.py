@@ -483,10 +483,10 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         returnValue = msgBox.exec()
         if returnValue == QMessageBox.Ok:
-            #print('OK clicked')
+            print('OK clicked')
 
     #def msgButtonClick(i):
-        #print("Button clicked is:", i.text())
+        print("Button clicked is:", i.text())
 
 
     def save_files(self):
@@ -503,7 +503,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         file_name_parameter = path_out + '/parameter.csv'
 
         if len(os.listdir(path_out)) == 0:
-            #print("Directory is empty")
+            print("Directory is empty")
         else:
             print("Directory is not empty!!!")
 
