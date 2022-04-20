@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+version =  "Version 2022.04.20 a"
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 #from pyqtgraph import PlotWidget
@@ -21,7 +21,7 @@ pg.setConfigOptions(antialias=True)     # Enable antialiasing for prettier plots
 
 Ui_GeneratorWindow, QGeneratorWindow = loadUiType('CT_helper.ui')  # GUI vom Hauptfenster
 
-print("Let's go")
+#print("Let's go")
 
 
 class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
@@ -74,7 +74,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         self.On_the_fly_nr_projections.valueChanged.connect(self.calculate_speed)
         self.on_the_fly_exp_time.valueChanged.connect(self.calculate_speed)
 
-        print('init')
+        #print('init')
         self.generate_list()
         self.generate_list_classic()
         self.generate_list_refraction()
@@ -97,11 +97,11 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         sample_pos = self.tomo_pos.value()
         FF_pos = self.FF_pos.value()
-        print('zero checked? ', self.zero_deg_checkBox.checkState())
+        #print('zero checked? ', self.zero_deg_checkBox.checkState())
 
         side_step_max = self.box_lateral_shift.value()                   # in µm
 
-        print(number_of_sequences, sequence_size, FF_sequence_size, angular_range, sample_pos, FF_pos, side_step_max)
+        #print(number_of_sequences, sequence_size, FF_sequence_size, angular_range, sample_pos, FF_pos, side_step_max)
         number_of_projections = number_of_sequences * sequence_size
         self.display_no_of_proj.display(number_of_projections)
 
@@ -109,7 +109,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         # COMPUTE LISTS #
 
         if (math.log(number_of_sequences, 2)) != int(math.log(number_of_sequences, 2)):
-            print('Choose from 2, 4, 8, 16, 32, 64, etc !!!')
+            #print('Choose from 2, 4, 8, 16, 32, 64, etc !!!')
             time.sleep(3)
             exit()
         grade = int(math.log(number_of_sequences, 2))
@@ -134,7 +134,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
                 n = n + 2
             k = k + 1
 
-        print('theta_first_list = ',theta_first_list)
+        #print('theta_first_list = ',theta_first_list)
 
 
         #   POSITIONS   # ===================================================================================================== #   POSITIONS   #
@@ -162,7 +162,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
                 i = i + 1
 
             m = m + 1
-        print(theta_list)
+        #print(theta_list)
 
 
         #  PLOT  #==============================================================================================
@@ -173,7 +173,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
             plot_list = list(range(((sequence_size + FF_sequence_size) * number_of_sequences + FF_sequence_size) + 6))
             plot_list_pos = list(range(((sequence_size + FF_sequence_size) * number_of_sequences + FF_sequence_size) + 6))
 
-        print(len(plot_list))
+        #print(len(plot_list))
         self.display_no_of_images.display(len(plot_list))
 
         n = 3
@@ -248,7 +248,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
             while (m < number_of_projections_2):  # Sequence loop
                 theta_list_2[m] = round(m * angular_steps_2, 4)
                 m = m + 1
-            print(theta_list_2)
+            #print(theta_list_2)
 
 
             #  PLOT  #==============================================================================================
@@ -256,7 +256,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
             plot_list_2 = list(range(((sequence_size_2 + FF_sequence_size_2) * number_of_sequences_2 + FF_sequence_size_2) + 6))
             plot_list_pos_2 = list(range(((sequence_size_2 + FF_sequence_size_2) * number_of_sequences_2 + FF_sequence_size_2) + 6))
 
-            print(len(plot_list_2))
+            #print(len(plot_list_2))
             self.display_no_of_images_2.display(len(plot_list_2))
 
             n = 3
@@ -313,11 +313,11 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         sample_pos_3 = self.tomo_pos_3.value()
         FF_pos_3 = self.FF_pos_3.value()
-        print('zero checked? ', self.zero_deg_checkBox_3.checkState())
+        #print('zero checked? ', self.zero_deg_checkBox_3.checkState())
 
         side_step_max_3 = self.box_lateral_shift_3.value()                   # in µm
 
-        print(number_of_sequences_3, sequence_size_3, FF_sequence_size_3, angular_range_3, sample_pos_3, FF_pos_3, side_step_max_3)
+        #print(number_of_sequences_3, sequence_size_3, FF_sequence_size_3, angular_range_3, sample_pos_3, FF_pos_3, side_step_max_3)
         number_of_projections_3 = number_of_sequences_3 * sequence_size_3
         self.display_no_of_proj_3.display(number_of_projections_3)
 
@@ -325,7 +325,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         # COMPUTE LISTS #
 
         if (math.log(number_of_sequences_3, 2)) != int(math.log(number_of_sequences_3, 2)):
-            print('Choose from 2, 4, 8, 16, 32, 64, etc !!!')
+            #print('Choose from 2, 4, 8, 16, 32, 64, etc !!!')
             time.sleep(3)
             exit()
         grade_3 = int(math.log(number_of_sequences_3, 2))
@@ -350,7 +350,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
                 n = n + 2
             k = k + 1
 
-        print('theta_first_list_3 = ',theta_first_list_3)
+        #print('theta_first_list_3 = ',theta_first_list_3)
 
 
         #   POSITIONS   # ===================================================================================================== #   POSITIONS   #
@@ -378,7 +378,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
                 i = i + 1
 
             m = m + 1
-        print(theta_list_3)
+        #print(theta_list_3)
 
 
         #  PLOT  #==============================================================================================
@@ -389,7 +389,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
             plot_list_3 = list(range(((sequence_size_3 + FF_sequence_size_3) * number_of_sequences_3 + FF_sequence_size_3) + 6))
             plot_list_pos_3 = list(range(((sequence_size_3 + FF_sequence_size_3) * number_of_sequences_3 + FF_sequence_size_3) + 6))
 
-        print(len(plot_list_3))
+        #print(len(plot_list_3))
         self.display_no_of_images_3.display(len(plot_list_3))
 
         n = 3
@@ -483,10 +483,10 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         returnValue = msgBox.exec()
         if returnValue == QMessageBox.Ok:
-            print('OK clicked')
+            #print('OK clicked')
 
     #def msgButtonClick(i):
-        print("Button clicked is:", i.text())
+        #print("Button clicked is:", i.text())
 
 
     def save_files(self):
@@ -495,7 +495,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         zero_deg_proj = self.zero_deg_checkBox.checkState()
 
         path_out = QtWidgets.QFileDialog.getExistingDirectory()
-        print(path_out)
+        #print(path_out)
         file_name_theta = path_out + '/theta_list.txt'
         file_name_theta_first = path_out + '/theta_first_list.txt'
         file_name_X_offset = path_out + '/X_offset_list.txt'
@@ -503,7 +503,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         file_name_parameter = path_out + '/parameter.csv'
 
         if len(os.listdir(path_out)) == 0:
-            print("Directory is empty")
+            #print("Directory is empty")
         else:
             print("Directory is not empty!!!")
 
@@ -546,7 +546,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         theta_list_2, sample_pos_2, FF_pos_2, FF_sequence_size_2, number_of_sequences_2, sequence_size_2, plot_list_pos_2, plot_list_2 = self.generate_list_classic()
         path_out_2 = QtWidgets.QFileDialog.getExistingDirectory()
-        print(path_out_2)
+        #print(path_out_2)
         file_name_theta_2 = path_out_2 + '/theta_list.txt'
         file_name_csv_list_2 = path_out_2 + '/csv_list.csv'
         file_name_parameter_2 = path_out_2 + '/parameter.csv'
@@ -586,7 +586,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         zero_deg_proj_3 = self.zero_deg_checkBox_3.checkState()
 
         path_out_3 = QtWidgets.QFileDialog.getExistingDirectory()
-        print(path_out_3)
+        #print(path_out_3)
         file_name_theta_3 = path_out_3 + '/theta_list.txt'
         file_name_theta_first_3 = path_out_3 + '/theta_first_list.txt'
         file_name_X_offset_3 = path_out_3 + '/X_offset_list.txt'
