@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.04.20 b"
+version =  "Version 2022.09.30 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -19,7 +19,7 @@ from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva      #to install search for "pvapy"
 
 
-Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_panel.ui')  # connect to the GUI for the program
+Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_dock_widget.ui')  # connect to the GUI for the program
 
 class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
@@ -96,7 +96,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
 
-    def check(self):
+    def check(self):    #AUTO UPDATE ON/OFF?
 
          if self.auto_update.isChecked():
              self.check_test_button()
