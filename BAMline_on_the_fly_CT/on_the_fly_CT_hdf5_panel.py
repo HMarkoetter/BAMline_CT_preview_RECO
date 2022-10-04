@@ -53,7 +53,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.int_high.valueChanged.connect(self.check)
 
 
-        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         #self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1

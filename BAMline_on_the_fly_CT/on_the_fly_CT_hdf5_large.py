@@ -54,7 +54,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
-        self.extend_FOV_fixed_ImageJ_Stream = self.extend_FOV
+        #self.extend_FOV_fixed_ImageJ_Stream = self.extend_FOV
+        self.extend_FOV_fixed_ImageJ_Stream = 1.5
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1
 
@@ -443,7 +444,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.path_out_reconstructed_full = self.path_out_reconstructed_ask
 
         #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension, 1.0 full extension to both sides (for off center 360 degree scans!!!)
-        self.extend_FOV = 2* (abs(self.COR.value() - self.Norm.shape[1]/2))/ (1 * self.Norm.shape[1]) #+ 0.25
+        self.extend_FOV = 2* (abs(self.COR.value() - self.Norm.shape[1]/2))/ (1 * self.Norm.shape[1]) + 0.15
         print('extend_FOV ', self.extend_FOV)
 
         #check if 180° or 360°-scan

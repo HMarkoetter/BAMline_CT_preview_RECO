@@ -20,7 +20,7 @@ from PIL import Image
 def main():
 	# Basics:
 	# ---------------------------------------------------
-	path_klick = tkinter.filedialog.askopenfilename(title="Select one file of the scan", initialdir = "/mnt/raid/CT/2021/2021_12/Markoetter/W500um/211207_1441_36_W500um___Z225_Y8400_20000eV_3p61um_100ms/")
+	path_klick = tkinter.filedialog.askopenfilename(title="Select one file of the scan", initialdir = "/mnt/raid/CT/")
 	#path_klick = QtWidgets.QFileDialog.getOpenFileName(None, 'Select one file of the scan, please.',"/mnt/raid/CT/2021/2021_12/Markoetter/W500um/211207_1441_36_W500um___Z225_Y8400_20000eV_3p61um_100ms/")
 
 	name = "Kugeljustage_"
