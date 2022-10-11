@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets
 from PyQt5.uic import loadUiType
 from pathlib import Path
 
-channel_name = 'HDF_Viewer'
+channel_name = 'HDF_Viewerttt'
 #standard_path = r'A:\BAMline-CT'
 standard_path = r'\\gfs01\g31\FB85-MeasuredData\BAMline-CT\2022\2022_03\flat_cathode\220317_1629_92_flat_cathode_____Z25_Y7400_30000eV_10x_250ms'
 
@@ -22,7 +22,6 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
 
         self.Load.clicked.connect(self.set_path)
-        self.spinBox_slice.valueChanged.connect(self.send_image)
         self.horizontalScrollBar_slice.valueChanged.connect(self.send_image)
         self.radioButton_X.toggled.connect(self.update)
         self.radioButton_Y.toggled.connect(self.update)
@@ -92,16 +91,30 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
             self.horizontalScrollBar_slice.setMinimum(0)
             self.spinBox_slice.setMaximum(self.dataset.shape[1])
             self.spinBox_slice.setValue(round(self.dataset.shape[1] / 2))
+            self.image['dimension'] = [
+                {'size': self.dataset.shape[2], 'fullSize': self.dataset.shape[2], 'binning': 1},
+                {'size': self.dataset.shape[0], 'fullSize': self.dataset.shape[0], 'binning': 1}]
+            self.image['value'] = ({'ushortValue': [0, 0, 0, 0]},)
         elif self.radioButton_Y.isChecked():
             self.horizontalScrollBar_slice.setMaximum(self.dataset.shape[2] - 1)
             self.horizontalScrollBar_slice.setMinimum(0)
             self.spinBox_slice.setMaximum(self.dataset.shape[2])
             self.spinBox_slice.setValue(round(self.dataset.shape[2] / 2))
+            self.image['dimension'] = [
+                {'size': self.dataset.shape[1], 'fullSize': self.dataset.shape[1], 'binning': 1},
+                {'size': self.dataset.shape[0], 'fullSize': self.dataset.shape[0], 'binning': 1}]
+            self.image['value'] = ({'ushortValue': [0, 0, 0, 0]},)
         elif self.radioButton_Z.isChecked():
             self.horizontalScrollBar_slice.setMaximum(self.dataset.shape[0] - 1)
             self.horizontalScrollBar_slice.setMinimum(0)
             self.spinBox_slice.setMaximum(self.dataset.shape[0])
             self.spinBox_slice.setValue(round(self.dataset.shape[0] / 2))
+            self.image['dimension'] = [
+                {'size': self.dataset.shape[2], 'fullSize': self.dataset.shape[2], 'binning': 1},
+                {'size': self.dataset.shape[1], 'fullSize': self.dataset.shape[1], 'binning': 1}]
+            self.image['value'] = ({'ushortValue': [0, 0, 0, 0]},)
+
+        self.send_image()
 
     def set_path(self):
         # grey out the buttons while program is busy
@@ -155,22 +168,10 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
 
     def send_image(self):
         if self.radioButton_Z.isChecked():
-            self.image['dimension'] = [
-                {'size': self.dataset.shape[2], 'fullSize': self.dataset.shape[2], 'binning': 1},
-                {'size': self.dataset.shape[1], 'fullSize': self.dataset.shape[1], 'binning': 1}]
             self.image['value'] = ({'ushortValue': self.dataset[self.spinBox_slice.value(), :, :].flatten()},)
-
         elif self.radioButton_X.isChecked():
-            self.image['dimension'] = [
-                {'size': self.dataset.shape[2], 'fullSize': self.dataset.shape[2], 'binning': 1},
-                {'size': self.dataset.shape[0], 'fullSize': self.dataset.shape[0], 'binning': 1}]
-            self.image['value'] = ({'ushortValue': [0,0,0,0]},)
             self.image['value'] = ({'ushortValue': self.dataset[:, self.spinBox_slice.value(), :].flatten()},)
-
         elif self.radioButton_Y.isChecked():
-            self.image['dimension'] = [
-                {'size': self.dataset.shape[1], 'fullSize': self.dataset.shape[1], 'binning': 1},
-                {'size': self.dataset.shape[0], 'fullSize': self.dataset.shape[0], 'binning': 1}]
             self.image['value'] = ({'ushortValue': self.dataset[:, :, self.spinBox_slice.value()].flatten()},)
 
 
