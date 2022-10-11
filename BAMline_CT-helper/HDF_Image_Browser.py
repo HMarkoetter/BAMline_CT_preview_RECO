@@ -5,7 +5,10 @@ from PyQt5.uic import loadUiType
 from pathlib import Path
 
 channel_name = 'HDF_Viewer'
-standard_path = r'A:\BAMline-CT'
+#standard_path = r'A:\BAMline-CT'
+standard_path = r'\\gfs01\g31\FB85-MeasuredData\BAMline-CT\2022\2022_03\flat_cathode\220317_1629_92_flat_cathode_____Z25_Y7400_30000eV_10x_250ms'
+
+
 Ui_HDF_Browser_Window, Q_HDF_Browser_Window = loadUiType('HDF_Image_Browser.ui')  # connect to the GUI for the program
 
 
@@ -71,6 +74,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.radioButton_Y.setEnabled(False)
         self.radioButton_Z.setEnabled(False)
         self.horizontalScrollBar_slice.setEnabled(False)
+        self.Load.setText('Busy')
 
     def buttons_activate_all(self):
         self.Load.setEnabled(True)
@@ -80,6 +84,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.radioButton_Z.setEnabled(True)
         self.radioButton_Z.setChecked(True)
         self.horizontalScrollBar_slice.setEnabled(True)
+        self.Load.setText('Load')
 
     def update(self):
         if self.radioButton_X.isChecked():
@@ -101,11 +106,18 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
     def set_path(self):
         # grey out the buttons while program is busy
         self.buttons_deactivate_all()
-        self.Load.setText('Busy')
+        path_klick = ''
 
         # ask for hdf5-file
         path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.',
                                                            standard_path)  # put NameS for multiple files
+
+        if path_klick[0] == '':
+            print('return')
+            self.buttons_activate_all()
+            return
+
+
         self.path_klick = path_klick[0]
         print('path klicked: ', self.path_klick)
         # analyse and cut the path in pieces
@@ -137,7 +149,6 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         print('Y', self.dataset.shape[2])
 
         # self.Filebrowser.setText(self.h5printR(self.f))
-        self.Load.setText('Load')
         print('File loaded!')
         self.spinBox_slice.setMaximum(self.dataset.shape[0])
         self.buttons_activate_all()
@@ -153,6 +164,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
             self.image['dimension'] = [
                 {'size': self.dataset.shape[2], 'fullSize': self.dataset.shape[2], 'binning': 1},
                 {'size': self.dataset.shape[0], 'fullSize': self.dataset.shape[0], 'binning': 1}]
+            self.image['value'] = ({'ushortValue': [0,0,0,0]},)
             self.image['value'] = ({'ushortValue': self.dataset[:, self.spinBox_slice.value(), :].flatten()},)
 
         elif self.radioButton_Y.isChecked():
