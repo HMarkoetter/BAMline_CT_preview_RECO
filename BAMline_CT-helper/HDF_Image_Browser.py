@@ -1,9 +1,7 @@
 import pvaccess as pva
 import h5py
-import numpy
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 from PyQt5.uic import loadUiType
-from PIL import Image
 from pathlib import Path
 
 channel_name = 'HDF_Viewer'
