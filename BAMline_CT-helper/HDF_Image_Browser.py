@@ -154,7 +154,13 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         #     return tree
         # self.structure += self.f.visititems(print_attrs)
 
-        self.dataset = self.f['/entry/data/data']
+        if '/entry/data/data' in self.f:
+            self.dataset = self.f['/entry/data/data']
+        elif '/Volume' in self.f:
+            self.dataset = self.f['/Volume']
+        else:
+            print('unable to find data')
+
         # fichier charge
         print('raw data volume size: ', self.dataset.shape)
         print('Z', self.dataset.shape[0])
