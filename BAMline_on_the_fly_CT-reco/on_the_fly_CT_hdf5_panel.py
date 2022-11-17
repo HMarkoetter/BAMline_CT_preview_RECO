@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.09.30 a"
+version =  "Version 2022.11.08 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -364,7 +364,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.Norm.shape[0]), 1, self.full_size), dtype=float)
         transposed_sinos[:,0,:] = self.Norm[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm.shape[0]),:]
 
+
+
         #extend data with calculated parameter, compute logarithm, remove NaN-values
+        ### cut and reorder 360°-sinos to 180°-sinos, work in progress !!!
         extended_sinos = tomopy.misc.morph.pad(transposed_sinos, axis=2, npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size), mode='edge')
 
         # for 360° scans crop the padded area opposite of the axis
@@ -544,7 +547,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 proj_sum_filtered = median_filter(self.proj_sum, size= self.spinBox_ringradius.value(), mode='nearest')
                 print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
                 correction_map_vol = numpy.divide(self.proj_sum, proj_sum_filtered)
-                correction_map_vol = numpy.clip(correction_map_vol, 0.9, 1.1)
+                correction_map_vol = numpy.clip(correction_map_vol, 0.7, 1.3)
                 print('correction_map_vol dimensions', correction_map_vol.shape, 'correction_map min vs max',
                       numpy.amin(correction_map_vol), numpy.amax(correction_map_vol))
 

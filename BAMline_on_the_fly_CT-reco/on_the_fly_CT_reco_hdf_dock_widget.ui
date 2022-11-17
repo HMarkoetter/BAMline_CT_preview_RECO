@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>320</width>
-    <height>1140</height>
+    <height>1148</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -64,7 +64,7 @@
        <item row="0" column="1">
         <widget class="QTextBrowser" name="Qchannel_name">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="maximumSize">
           <size>
@@ -470,7 +470,7 @@ p, li { white-space: pre-wrap; }
           </font>
          </property>
          <property name="text">
-          <string>Filter</string>
+          <string>Filter(gridrec)</string>
          </property>
         </widget>
        </item>
@@ -500,71 +500,6 @@ p, li { white-space: pre-wrap; }
          <item>
           <property name="text">
            <string>FBP_CUDA</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>art</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>bart</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>fbp</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>sirt</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>tv</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>grad</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>mlem</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>tikh</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>osem</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>pml_hybrid</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>pml_quad</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>ospml_hybrid</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>ospml_quad</string>
           </property>
          </item>
         </widget>
@@ -1188,77 +1123,6 @@ p, li { white-space: pre-wrap; }
         </layout>
        </item>
       </layout>
-     </item>
-    </layout>
-   </widget>
-  </widget>
-  <widget class="QDockWidget" name="dockWidget">
-   <property name="windowTitle">
-    <string>4D</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>1</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents_6">
-    <layout class="QGridLayout" name="gridLayout_11">
-     <item row="0" column="0">
-      <widget class="QTableWidget" name="tableWidget">
-       <row>
-        <property name="text">
-         <string>data1</string>
-        </property>
-       </row>
-       <row>
-        <property name="text">
-         <string>data2</string>
-        </property>
-       </row>
-       <row>
-        <property name="text">
-         <string>data3</string>
-        </property>
-       </row>
-       <row>
-        <property name="text">
-         <string>data4</string>
-        </property>
-       </row>
-       <column>
-        <property name="text">
-         <string>reconstruct</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>COR</string>
-        </property>
-       </column>
-       <item row="0" column="0">
-        <property name="checkState">
-         <enum>Checked</enum>
-        </property>
-       </item>
-       <item row="0" column="1">
-        <property name="text">
-         <string>1234</string>
-        </property>
-       </item>
-       <item row="1" column="0">
-        <property name="checkState">
-         <enum>Checked</enum>
-        </property>
-       </item>
-       <item row="2" column="0">
-        <property name="checkState">
-         <enum>Checked</enum>
-        </property>
-       </item>
-       <item row="3" column="0">
-        <property name="checkState">
-         <enum>Checked</enum>
-        </property>
-       </item>
-      </widget>
      </item>
     </layout>
    </widget>
