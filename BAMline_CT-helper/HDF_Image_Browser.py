@@ -69,13 +69,11 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         print(self.pvaServer_HDF_Image_Browser.getRecordNames())
 
     def updatepva(self):
-        image = pva.PvObject(self.pva_image_dict)
         self.pvaServer_HDF_Image_Browser.removeAllRecords()
-        self.pvaServer_HDF_Image_Browser.addRecord(self.Qchannel_name.text(), image, None)
+        self.image = pva.PvObject(self.pva_image_dict)
+        self.pvaServer_HDF_Image_Browser.addRecord(self.Qchannel_name.text(), self.image, None)
         print(self.pvaServer_HDF_Image_Browser.getRecordNames())
         self.pvaServer_HDF_Image_Browser.start()
-
-
 
     def buttons_deactivate_all(self):
         self.Load.setEnabled(False)
