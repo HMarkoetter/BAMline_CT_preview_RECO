@@ -1,10 +1,10 @@
 import pvaccess as pva
 import h5py
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QStandardItem
 from PyQt5.uic import loadUiType
 from pathlib import Path
 
-channel_name = 'HDF_Viewerttt'
 #standard_path = r'A:\BAMline-CT'
 standard_path = r'\\gfs01\g31\FB85-MeasuredData\BAMline-CT\2022\2022_03\flat_cathode\220317_1629_92_flat_cathode_____Z25_Y7400_30000eV_10x_250ms'
 
@@ -18,6 +18,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         super(HDF_Browser, self).__init__()
         self.setupUi(self)
         self.setWindowTitle('HDF Browser')
+        self.Qchannel_name.setText('HDF_Viewerttt')
         # create pva type pv for reconstruction by copying metadata from the data pv, but replacing the sizes
         # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
 
@@ -26,8 +27,10 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.radioButton_X.toggled.connect(self.update)
         self.radioButton_Y.toggled.connect(self.update)
         self.radioButton_Z.toggled.connect(self.update)
+        self.Qchannel_name.returnPressed.connect(self.updatepva)
 
-        pva_image_dict = {'value': ({'booleanValue': [pva.pvaccess.ScalarType.BOOLEAN], 'byteValue':
+
+        self.pva_image_dict = {'value': ({'booleanValue': [pva.pvaccess.ScalarType.BOOLEAN], 'byteValue':
             [pva.pvaccess.ScalarType.BYTE], 'shortValue': [pva.pvaccess.ScalarType.SHORT], 'intValue':
                                          [pva.pvaccess.ScalarType.INT], 'longValue': [pva.pvaccess.ScalarType.LONG],
                                      'ubyteValue':
@@ -60,11 +63,17 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
                           'display': {'limitLow': pva.pvaccess.ScalarType.DOUBLE, 'limitHigh':
                               pva.pvaccess.ScalarType.DOUBLE, 'description': pva.pvaccess.ScalarType.STRING, 'format':
                                           pva.pvaccess.ScalarType.STRING, 'units': pva.pvaccess.ScalarType.STRING}}
+        self.image = pva.PvObject(self.pva_image_dict)
+        self.pvaServer_HDF_Image_Browser = pva.PvaServer(self.Qchannel_name.text(), self.image)
+        self.pvaServer_HDF_Image_Browser.start()
+        print(self.pvaServer_HDF_Image_Browser.getRecordNames())
 
-        self.image = pva.PvObject(pva_image_dict)
-        self.pvaServer = pva.PvaServer(channel_name, self.image)
-        self.Qchannel_name.setText(channel_name)
-        self.pvaServer.start()
+    def updatepva(self):
+        self.pvaServer_HDF_Image_Browser.removeAllRecords()
+        self.image = pva.PvObject(self.pva_image_dict)
+        self.pvaServer_HDF_Image_Browser.addRecord(self.Qchannel_name.text(), self.image, None)
+        print(self.pvaServer_HDF_Image_Browser.getRecordNames())
+        self.pvaServer_HDF_Image_Browser.start()
 
     def buttons_deactivate_all(self):
         self.Load.setEnabled(False)
@@ -116,6 +125,31 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
 
         self.send_image()
 
+    def populateTree(self):
+        self.treeWidget.clear()
+
+        def recursivePopulateTree(parent_node, data):
+            # If the data is a tuple, extract the first element
+            if type(data[1]) == h5py.Dataset:
+                dataset_item = data[1].shape
+            else:
+                dataset_item = ''
+
+            tree_node = QtWidgets.QTreeWidgetItem([data[0], str(dataset_item)])
+            parent_node.addChild(tree_node)
+            if type(data[1]) == h5py.Group:
+                for item in data[1].items():
+                    recursivePopulateTree(tree_node, item)
+            return tree_node
+
+        # add root
+        topnode = QtWidgets.QTreeWidgetItem([self.f.filename])
+        root = self.f["/"]
+        topnode.setData(0, QtCore.Qt.UserRole, root)
+        self.treeWidget.addTopLevelItem(topnode)
+        for item in self.f.items():
+            recursivePopulateTree(topnode, item)
+
     def set_path(self):
         # grey out the buttons while program is busy
         self.buttons_deactivate_all()
@@ -141,25 +175,14 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         # link a volume to the hdf-file
         self.f = h5py.File(self.path_klick, 'r')
 
-        # def print_attrs(name, obj):
-        #     # Create indent
-        #     shift = name.count('/') * '    '
-        #     item_name = name.split("/")[-1]
-        #     tree = shift + item_name
-        #     try:
-        #         if isinstance(obj, h5py.Dataset):
-        #             tree += shift + str(obj.shape)
-        #     except:
-        #         pass
-        #     return tree
-        # self.structure += self.f.visititems(print_attrs)
-
         if '/entry/data/data' in self.f:
             self.dataset = self.f['/entry/data/data']
         elif '/Volume' in self.f:
             self.dataset = self.f['/Volume']
         else:
             print('unable to find data')
+
+        self.populateTree()
 
         # fichier charge
         print('raw data volume size: ', self.dataset.shape)
@@ -173,13 +196,13 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.buttons_activate_all()
 
     def send_image(self):
+
         if self.radioButton_Z.isChecked():
             self.image['value'] = ({'ushortValue': self.dataset[self.spinBox_slice.value(), :, :].flatten()},)
         elif self.radioButton_X.isChecked():
             self.image['value'] = ({'ushortValue': self.dataset[:, self.spinBox_slice.value(), :].flatten()},)
         elif self.radioButton_Y.isChecked():
             self.image['value'] = ({'ushortValue': self.dataset[:, :, self.spinBox_slice.value()].flatten()},)
-
 
 if __name__ == "__main__":
     import sys
