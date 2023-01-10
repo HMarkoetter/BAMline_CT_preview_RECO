@@ -1,5 +1,5 @@
 # On-the-fly-CT Reco
-version =  "Version 2022.11.08 a"
+version =  "Version 2022.11.09 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -289,7 +289,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             proj_sum_filtered = median_filter(self.proj_sum_2d, size = (1,self.spinBox_ringradius.value()), mode='nearest')
             print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
             correction_map = numpy.divide(self.proj_sum_2d, proj_sum_filtered)
-            correction_map = numpy.clip(correction_map, 0.9, 1.1)
+            correction_map = numpy.clip(correction_map, 0.5, 2.0)
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
 
             i=0
@@ -547,7 +547,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 proj_sum_filtered = median_filter(self.proj_sum, size= self.spinBox_ringradius.value(), mode='nearest')
                 print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
                 correction_map_vol = numpy.divide(self.proj_sum, proj_sum_filtered)
-                correction_map_vol = numpy.clip(correction_map_vol, 0.7, 1.3)
+                correction_map_vol = numpy.clip(correction_map_vol, 0.5, 2.0)
                 print('correction_map_vol dimensions', correction_map_vol.shape, 'correction_map min vs max',
                       numpy.amin(correction_map_vol), numpy.amax(correction_map_vol))
 
