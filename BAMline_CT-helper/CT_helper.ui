@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>609</width>
+    <width>658</width>
     <height>712</height>
    </rect>
   </property>
@@ -36,11 +36,101 @@
          <rect>
           <x>9</x>
           <y>9</y>
-          <width>561</width>
-          <height>190</height>
+          <width>616</width>
+          <height>381</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_5">
+         <item row="4" column="0">
+          <widget class="QDoubleSpinBox" name="rot_speed">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>14</pointsize>
+            </font>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>4</number>
+           </property>
+           <property name="maximum">
+            <double>360.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QDoubleSpinBox" name="rot_step">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>14</pointsize>
+            </font>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>4</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_16">
+           <property name="text">
+            <string>Rot-speed [°/s]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QDoubleSpinBox" name="duration">
+           <property name="font">
+            <font>
+             <pointsize>14</pointsize>
+            </font>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>2</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>Rot-step [°/img]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
          <item row="1" column="2">
           <widget class="QComboBox" name="on_the_fly_comboBox">
            <item>
@@ -71,7 +161,7 @@
             <double>0.001000000000000</double>
            </property>
            <property name="singleStep">
-            <double>0.100000000000000</double>
+            <double>0.050000000000000</double>
            </property>
            <property name="value">
             <double>0.500000000000000</double>
@@ -119,8 +209,15 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="0">
-          <widget class="QDoubleSpinBox" name="rot_speed">
+         <item row="7" column="0">
+          <widget class="QLabel" name="label_19">
+           <property name="text">
+            <string>Height travel  [mm]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QDoubleSpinBox" name="height_speed">
            <property name="enabled">
             <bool>true</bool>
            </property>
@@ -136,68 +233,15 @@
             <enum>QAbstractSpinBox::NoButtons</enum>
            </property>
            <property name="decimals">
-            <number>4</number>
+            <number>5</number>
            </property>
-           <property name="maximum">
-            <double>360.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1">
-          <widget class="QDoubleSpinBox" name="rot_step">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>14</pointsize>
-            </font>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
-           <property name="buttonSymbols">
-            <enum>QAbstractSpinBox::NoButtons</enum>
-           </property>
-           <property name="decimals">
-            <number>4</number>
+           <property name="singleStep">
+            <double>0.000010000000000</double>
            </property>
           </widget>
          </item>
-         <item row="4" column="2">
-          <widget class="QDoubleSpinBox" name="duration">
-           <property name="font">
-            <font>
-             <pointsize>14</pointsize>
-            </font>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
-           <property name="buttonSymbols">
-            <enum>QAbstractSpinBox::NoButtons</enum>
-           </property>
-           <property name="decimals">
-            <number>2</number>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="label_16">
-           <property name="text">
-            <string>Rot-speed [°/s]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLabel" name="label_17">
-           <property name="text">
-            <string>Rot-step [°/img]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <spacer name="verticalSpacer">
+         <item row="5" column="0">
+          <spacer name="verticalSpacer_2">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
            </property>
@@ -208,6 +252,36 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item row="8" column="0">
+          <widget class="QDoubleSpinBox" name="height_travel">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="minimum">
+            <double>0.001000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>0.010000000000000</double>
+           </property>
+           <property name="value">
+            <double>3.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QLabel" name="label_20">
+           <property name="text">
+            <string>Height speed  [mm/s]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_21">
+           <property name="text">
+            <string>Helix-Option:</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -1659,7 +1733,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>609</width>
+     <width>658</width>
      <height>26</height>
     </rect>
    </property>

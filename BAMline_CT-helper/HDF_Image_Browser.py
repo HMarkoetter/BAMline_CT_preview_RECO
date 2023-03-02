@@ -75,6 +75,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.pvaServer_HDF_Image_Browser.addRecord(self.Qchannel_name.text(), self.image, None)
         print(self.pvaServer_HDF_Image_Browser.getRecordNames())
         self.pvaServer_HDF_Image_Browser.start()
+        self.update()
 
     def buttons_deactivate_all(self):
         self.Load.setEnabled(False)
@@ -204,11 +205,10 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
 
         # self.Filebrowser.setText(self.h5printR(self.f))
         print('File loaded!')
-        self.spinBox_slice.setMaximum(self.dataset.shape[0])
+        self.update()
         self.buttons_activate_all()
 
     def send_image(self):
-
         if self.radioButton_Z.isChecked():
             self.image['value'] = ({self.typedata: self.dataset[self.spinBox_slice.value(), :, :].flatten()},)
         elif self.radioButton_X.isChecked():

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-version =  "Version 2022.04.20 a"
+version =  "Version 2023.01.10 a"
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 #from pyqtgraph import PlotWidget
@@ -73,18 +73,20 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
         self.on_the_fly_comboBox.currentIndexChanged.connect(self.calculate_speed)
         self.On_the_fly_nr_projections.valueChanged.connect(self.calculate_speed)
         self.on_the_fly_exp_time.valueChanged.connect(self.calculate_speed)
+        self.height_travel.valueChanged.connect(self.calculate_speed)
 
         #print('init')
         self.generate_list()
         self.generate_list_classic()
         self.generate_list_refraction()
-
+        self.calculate_speed()
 
         # Calculate speeds for on-the-fly CT
     def calculate_speed(self):
         self.rot_speed.setValue(int((self.on_the_fly_comboBox.currentText()))/(self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value()))
         self.rot_step.setValue(int((self.on_the_fly_comboBox.currentText()))/(self.On_the_fly_nr_projections.value()))
         self.duration.setValue((self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value())/60)
+        self.height_speed.setValue((self.height_travel.value())/(self.on_the_fly_exp_time.value()*self.On_the_fly_nr_projections.value()))
 
 
     def generate_list(self):

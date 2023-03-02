@@ -31,7 +31,7 @@
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Tab 1</string>
+        <string>Viewer</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
