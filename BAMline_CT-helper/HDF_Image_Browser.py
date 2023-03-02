@@ -4,6 +4,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItem
 from PyQt5.uic import loadUiType
 from pathlib import Path
+import numpy as np
 
 #standard_path = r'A:\BAMline-CT'
 standard_path = r'\\gfs01\g31\FB85-MeasuredData\BAMline-CT\2022\2022_03\flat_cathode\220317_1629_92_flat_cathode_____Z25_Y7400_30000eV_10x_250ms'
@@ -95,6 +96,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.Load.setText('Load')
 
     def update(self):
+
         if self.radioButton_X.isChecked():
             self.horizontalScrollBar_slice.setMaximum(self.dataset.shape[1] - 1)
             self.horizontalScrollBar_slice.setMinimum(0)
@@ -190,6 +192,16 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         print('X', self.dataset.shape[1])
         print('Y', self.dataset.shape[2])
 
+        print(self.dataset.dtype)
+
+        if self.dataset.dtype is np.dtype(float):
+            print('float')
+            self.typedata = 'floatValue'
+        else:
+            self.typedata = 'ushortValue'
+
+
+
         # self.Filebrowser.setText(self.h5printR(self.f))
         print('File loaded!')
         self.spinBox_slice.setMaximum(self.dataset.shape[0])
@@ -198,11 +210,11 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
     def send_image(self):
 
         if self.radioButton_Z.isChecked():
-            self.image['value'] = ({'ushortValue': self.dataset[self.spinBox_slice.value(), :, :].flatten()},)
+            self.image['value'] = ({self.typedata: self.dataset[self.spinBox_slice.value(), :, :].flatten()},)
         elif self.radioButton_X.isChecked():
-            self.image['value'] = ({'ushortValue': self.dataset[:, self.spinBox_slice.value(), :].flatten()},)
+            self.image['value'] = ({self.typedata: self.dataset[:, self.spinBox_slice.value(), :].flatten()},)
         elif self.radioButton_Y.isChecked():
-            self.image['value'] = ({'ushortValue': self.dataset[:, :, self.spinBox_slice.value()].flatten()},)
+            self.image['value'] = ({self.typedata: self.dataset[:, :, self.spinBox_slice.value()].flatten()},)
 
 if __name__ == "__main__":
     import sys
