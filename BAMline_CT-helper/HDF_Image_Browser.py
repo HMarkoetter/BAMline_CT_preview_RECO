@@ -19,7 +19,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         super(HDF_Browser, self).__init__()
         self.setupUi(self)
         self.setWindowTitle('HDF Browser')
-        self.Qchannel_name.setText('HDF_Viewerttt')
+        self.Qchannel_name.setText('BAMline:HDF_Viewer')
         # create pva type pv for reconstruction by copying metadata from the data pv, but replacing the sizes
         # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
 

@@ -1,6 +1,6 @@
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:Radio_Theta2_avg'
-standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
+standard_path = "/raid/CT/2023/2023_03/Markoetter/daisy_lam3_top_mystery/" # '/mnt/raid/CT/2022/'
 
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -24,7 +24,7 @@ class Radio_Theta2_avg(Ui_Theta2_avg_Window, Q_Theta2_avg_Window):
     def __init__(self):
         super(Radio_Theta2_avg, self).__init__()
         self.setupUi(self)
-        self.setWindowTitle('On-the-fly CT Reco')
+        self.setWindowTitle('Radio_Theta2_avg')
 
         #connect buttons to actions
         self.pushLoad.clicked.connect(self.set_path)
@@ -104,7 +104,12 @@ class Radio_Theta2_avg(Ui_Theta2_avg_Window, Q_Theta2_avg_Window):
         FFs = self.vol_proxy_ff
         Proj = self.vol_proxy_proj
 
-        self.Norm_stack = numpy.divide(numpy.subtract(Proj, self.spinBox_DF.value()), numpy.subtract(FFs, self.spinBox_DF.value()))
+        self.min_size = min(FFs.shape[0],Proj.shape[0])
+
+        self.Norm_stack = numpy.divide(numpy.subtract(Proj[0:self.min_size,:,:], self.spinBox_DF.value()), numpy.subtract(FFs[0:self.min_size,:,:], self.spinBox_DF.value()))
+
+
+
 
 
 
@@ -117,14 +122,11 @@ class Radio_Theta2_avg(Ui_Theta2_avg_Window, Q_Theta2_avg_Window):
         self.pushLoad.setEnabled(False)
         self.pushCompute.setEnabled(False)  # DOES NOT SEEM TO WORK!
 
-        nr_of_images = self.vol_proxy_ff.shape[0]
-        print(nr_of_images)
-
         self.Norm_stack2 = self.Norm_stack.copy()
 
         i = 0
-        while i < nr_of_images:
-            print(i, ' of ',nr_of_images)
+        while i < self.min_size:
+            print(i, ' of ',self.min_size)
             self.Norm_stack2[i,:,:] = scipy.ndimage.shift(self.Norm_stack[i,:,:], (i * self.doubleSpinBox_Shift.value(),0), order=0, mode='nearest', prefilter=True)
             i=i+1
 

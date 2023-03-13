@@ -234,7 +234,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #find rotation start
         i = 0
         while i < self.graph.shape[0]:
-            if round(self.graph[i]) == 0:  # notice the last projection at below 0.5°
+            if round(self.graph[i]) == 1:  # notice the last projection at below 1.5°
                 self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
 
