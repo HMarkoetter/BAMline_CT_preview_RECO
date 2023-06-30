@@ -1,10 +1,3 @@
-# On-the-fly-CT Reco
-version =  "Version 2022.11.09 a"
-
-#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
-channel_name = 'BAMline:CTReco'
-standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
-
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
@@ -18,6 +11,12 @@ import csv
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva      #to install search for "pvapy"
 
+# On-the-fly-CT Reco
+version =  "Version 2022.11.09 a"
+
+#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
+channel_name = 'BAMline:CTReco'
+standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
 
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_dock_widget.ui')  # connect to the GUI for the program
 
@@ -190,7 +189,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct.setText('Busy')
         self.pushReconstruct_all.setText('Busy\n')
         self.new = 1
-        self.extend_FOV_fixed_ImageJ_Stream = 0.25
+        self.extend_FOV_fixed_ImageJ_Stream = 0.05
 
         #ask for hdf5-file
         path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
@@ -251,7 +250,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.new = 1
 
         if self.comboBox_180_360.currentText() == '180 - axis centered':
-            self.extend_FOV_fixed_ImageJ_Stream = 0.15
+            self.extend_FOV_fixed_ImageJ_Stream = 0.05
         else:
             self.extend_FOV_fixed_ImageJ_Stream = 1.15
         print('extend FOV',self.extend_FOV_fixed_ImageJ_Stream)
