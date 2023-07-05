@@ -108,10 +108,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
     def update_window_size(self):
         self.new = 1
+        #update possible range for crop inputs
+        print(self.slice_size)
+        self.spinBox_left.setMaximum(self.slice_size-self.spinBox_right.value() -1)
+        self.spinBox_right.setMaximum(self.slice_size-self.spinBox_left.value() -1)
+        self.spinBox_top.setMaximum(self.slice_size-self.spinBox_bottom.value() -1)
+        self.spinBox_bottom.setMaximum(self.slice_size-self.spinBox_top.value() -1)
         self.check()
 
     def check_test_button(self):
-
+        #check what is still in RAM and does not need to be updated
          if self.slice_in_ram != self.slice_number.value() or self.ringradius_in_RAM != self.spinBox_ringradius.value() or self.spinBox_DF_in_ram != self.spinBox_DF.value() or self.spinBox_back_illumination_in_ram != self.spinBox_back_illumination.value():
              self.load()
          else:
@@ -142,6 +148,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.spinBox_first.setEnabled(False)
         self.spinBox_last.setEnabled(False)
+        self.spinBox_left.setEnabled(False)
+        self.spinBox_right.setEnabled(False)
+        self.spinBox_top.setEnabled(False)
+        self.spinBox_bottom.setEnabled(False)
         #self.push_Crop_volume.setEnabled(False)
 
         self.pushReconstruct_all.setEnabled(False)
@@ -188,7 +198,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def buttons_activate_crop_volume(self):
         self.spinBox_first.setEnabled(True)
         self.spinBox_last.setEnabled(True)
-        self.push_Crop_volume.setEnabled(True)
+        self.spinBox_left.setEnabled(True)
+        self.spinBox_right.setEnabled(True)
+        self.spinBox_top.setEnabled(True)
+        self.spinBox_bottom.setEnabled(True)
+        #self.push_Crop_volume.setEnabled(True)
 
 
 
@@ -214,7 +228,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
     def cut_path_name(self):
-        #analyse and cut the path in pieces
+        #analyse and cut the path in pieces and get relevant information from raw-file
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         ni_htap = self.path_in[::-1]
@@ -254,7 +268,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             if round(self.graph[i]) == 0:  # notice the last projection at below 0.5°
                 self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
-
         print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
 
         if self.COR.value() == 0:
@@ -265,6 +278,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_first.setValue(0)
         self.spinBox_last.setValue(self.vol_proxy.shape[1]-1)
         print('set possible crop range')
+
+        #get and prefill pixel_size
+        if '/entry/instrument/NDAttributes/CT_Pixelsize' in f:
+            self.pixel_proxy = f['/entry/instrument/NDAttributes/CT_Pixelsize']
+            print('self.pixel_proxy', self.pixel_proxy[0], self.pixel_proxy[0])
+            self.pixel_size.setValue(self.pixel_proxy[0])
+        else:
+            self.pixel_size.setValue(1)
+            print('pixel size not found')
+        self.pixel_size.setEnabled(True)
 
         self.load()
 
@@ -337,7 +360,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        #self.buttons_activate_crop_volume()
+        self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         print('Loading/changing slice complete!')
 
@@ -428,7 +451,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             slices = slices[:, round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2): -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2),round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2): -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2)]
         else:
             slices = slices[:, round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size): -round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size),round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size): -round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size)]
-
+        self.slice_size = slices.shape[1]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
 
         #crop before sending to ImageJ      spinBox_left
@@ -470,7 +493,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        #self.buttons_activate_crop_volume()
+        self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         self.pushReconstruct.setText('Test')
         self.pushReconstruct_all.setText('Reconstruct\n Volume')
@@ -687,7 +710,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        #self.buttons_activate_crop_volume()
+        self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         self.pushReconstruct.setText('Test')
         self.pushReconstruct_all.setText('Reconstruct\n Volume')
