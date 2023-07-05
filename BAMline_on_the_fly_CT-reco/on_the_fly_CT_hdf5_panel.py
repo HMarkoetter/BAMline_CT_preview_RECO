@@ -8,6 +8,7 @@ import math
 import time
 import os
 import csv
+import cv2
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva      #to install search for "pvapy"
 
@@ -282,7 +283,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #get and prefill pixel_size
         if '/entry/instrument/NDAttributes/CT_Pixelsize' in f:
             self.pixel_proxy = f['/entry/instrument/NDAttributes/CT_Pixelsize']
-            print('self.pixel_proxy', self.pixel_proxy[0], self.pixel_proxy[0])
+            print('self.pixel_proxy', self.pixel_proxy[0], self.pixel_proxy[-1])
             self.pixel_size.setValue(self.pixel_proxy[0])
         else:
             self.pixel_size.setValue(1)
@@ -454,8 +455,40 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_size = slices.shape[1]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
 
+        slice = slices[0,:,:]   #reduce dimensions from 3 to 2
+
+        if self.checkBox_ruler.isChecked():
+            f = h5py.File(self.path_klick, 'r')
+            if '/entry/instrument/NDAttributes/CT_Piezo_X45' in f:
+                self.piezo_45_proxy = f['/entry/instrument/NDAttributes/CT_Piezo_X45']
+                print('self.piezo_45_proxy: ', self.piezo_45_proxy[0], self.piezo_45_proxy[-1], round(1000*self.piezo_45_proxy[-1]))
+                self.piezo_135_proxy = f['/entry/instrument/NDAttributes/CT_Piezo_Y45']
+                print('self.piezo_135_proxy: ', self.piezo_135_proxy[0], self.piezo_135_proxy[-1], round(1000*self.piezo_135_proxy[-1]))
+
+
+            #add ruler +X
+            for r in range(round(slice.shape[1]/(2*self.pixel_size.value())), round(slice.shape[1]/self.pixel_size.value()), round(self.spinBox_ruler_grid.value()/self.pixel_size.value())):
+                cv2.line(slice, (round(r*self.pixel_size.value()), 0), (round(r*self.pixel_size.value()), slice.shape[0]), (65535, 65535, 65535), 4)
+                cv2.putText(slice, str(round(1000*self.piezo_45_proxy[-1]/5)*5 + round(r*self.pixel_size.value()/5)*5 - round(slice.shape[1]/10)*5), (round(r*self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+            #add ruler -X
+            for r in range(round(slice.shape[1]/(2*self.pixel_size.value())), 0, -round(self.spinBox_ruler_grid.value()/self.pixel_size.value())):
+                cv2.line(slice, (round(r*self.pixel_size.value()), 0), (round(r*self.pixel_size.value()), slice.shape[0]), (65535, 65535, 65535), 4)
+                cv2.putText(slice, str(round(1000*self.piezo_45_proxy[-1]/5)*5 + round(r*self.pixel_size.value()/5)*5 - round(slice.shape[1]/10)*5), (round(r*self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+            #add ruler +Y
+            for r in range(round(slice.shape[1]/(2*self.pixel_size.value())), round(slice.shape[1]/self.pixel_size.value()), round(self.spinBox_ruler_grid.value()/self.pixel_size.value())):
+                cv2.line(slice, (0, round(r*self.pixel_size.value())), (slice.shape[1], round(r*self.pixel_size.value())), (65535, 65535, 65535), 4)
+                cv2.putText(slice, str(round(1000*self.piezo_135_proxy[-1]/5)*5 + round(r*self.pixel_size.value()/5)*5 - round(slice.shape[1]/10)*5), ( 20, round(r*self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+            #add ruler -Y
+            for r in range(round(slice.shape[1]/(2*self.pixel_size.value())), 0, -round(self.spinBox_ruler_grid.value()/self.pixel_size.value())):
+                cv2.line(slice, (0, round(r*self.pixel_size.value())), (slice.shape[1], round(r*self.pixel_size.value())), (65535, 65535, 65535), 4)
+                cv2.putText(slice, str(round(1000*self.piezo_135_proxy[-1]/5)*5 + round(r*self.pixel_size.value()/5)*5 - round(slice.shape[1]/10)*5), ( 20, round(r*self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+
         #crop before sending to ImageJ      spinBox_left
-        original_reconstruction = slices[0, self.spinBox_top.value():-self.spinBox_bottom.value()-1, self.spinBox_left.value():-self.spinBox_right.value()-1]
+        original_reconstruction = slice[self.spinBox_top.value():-self.spinBox_bottom.value()-1, self.spinBox_left.value():-self.spinBox_right.value()-1]
         print('original_reconstruction.shape', original_reconstruction.shape)
 
         # set image dimensions only for the first time or when scan-type was changed
