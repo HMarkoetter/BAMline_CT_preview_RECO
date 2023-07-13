@@ -747,7 +747,7 @@ p, li { white-space: pre-wrap; }
        <item row="1" column="0">
         <widget class="QLabel" name="label_23">
          <property name="text">
-          <string>grid (µm)</string>
+          <string>grid</string>
          </property>
         </widget>
        </item>
@@ -771,6 +771,39 @@ p, li { white-space: pre-wrap; }
         <widget class="QCheckBox" name="checkBox_ruler">
          <property name="text">
           <string>add ruler</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QRadioButton" name="radioButton">
+         <property name="text">
+          <string>µm</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QRadioButton" name="radioButton_2">
+         <property name="text">
+          <string>pixel</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QSpinBox" name="spinBox_pixel_grid">
+         <property name="minimum">
+          <number>10</number>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+         <property name="value">
+          <number>200</number>
          </property>
         </widget>
        </item>
