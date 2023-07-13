@@ -1,10 +1,3 @@
-# On-the-fly-CT Reco
-version =  "Version 2022.11.09 a"
-
-#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
-channel_name = 'BAMline:CTReco'
-standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
-
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
@@ -15,9 +8,17 @@ import math
 import time
 import os
 import csv
+import cv2                                      #to install package with pycharm by finding "opencv-python"
 from scipy.ndimage.filters import gaussian_filter, median_filter
-import pvaccess as pva      #to install search for "pvapy"
+import pvaccess as pva                          #to install package with pycharm search for "pvapy"
 
+# On-the-fly-CT Reco
+version =  "Version 2023.07.04 a"
+
+#Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
+channel_name = 'BAMline:CTReco'
+#standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
+standard_path = r'C:/delete/reg_data/18_230606_2044_AlTi_F_Ref_tomo___Z25_Y6500_25000eV_10x_400ms'
 
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_dock_widget.ui')  # connect to the GUI for the program
 
@@ -51,9 +52,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.radioButton_16bit_integer.clicked.connect(self.check)
         self.int_low.valueChanged.connect(self.check)
         self.int_high.valueChanged.connect(self.check)
+        self.spinBox_top.valueChanged.connect(self.update_window_size)
+        self.spinBox_bottom.valueChanged.connect(self.update_window_size)
+        self.spinBox_left.valueChanged.connect(self.update_window_size)
+        self.spinBox_right.valueChanged.connect(self.update_window_size)
 
 
-        self.block_size = 256        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         #self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1
@@ -102,9 +107,18 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
              self.check_test_button()
          return
 
+    def update_window_size(self):
+        self.new = 1
+        #update possible range for crop inputs
+        print(self.slice_size)
+        self.spinBox_left.setMaximum(self.slice_size-self.spinBox_right.value() -1)
+        self.spinBox_right.setMaximum(self.slice_size-self.spinBox_left.value() -1)
+        self.spinBox_top.setMaximum(self.slice_size-self.spinBox_bottom.value() -1)
+        self.spinBox_bottom.setMaximum(self.slice_size-self.spinBox_top.value() -1)
+        self.check()
 
     def check_test_button(self):
-
+        #check what is still in RAM and does not need to be updated
          if self.slice_in_ram != self.slice_number.value() or self.ringradius_in_RAM != self.spinBox_ringradius.value() or self.spinBox_DF_in_ram != self.spinBox_DF.value() or self.spinBox_back_illumination_in_ram != self.spinBox_back_illumination.value():
              self.load()
          else:
@@ -135,6 +149,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.spinBox_first.setEnabled(False)
         self.spinBox_last.setEnabled(False)
+        self.spinBox_left.setEnabled(False)
+        self.spinBox_right.setEnabled(False)
+        self.spinBox_top.setEnabled(False)
+        self.spinBox_bottom.setEnabled(False)
         #self.push_Crop_volume.setEnabled(False)
 
         self.pushReconstruct_all.setEnabled(False)
@@ -175,12 +193,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.save_tiff.setEnabled(True)
         self.save_hdf5.setEnabled(True)
         self.auto_update.setEnabled(True)
-
+        self.spinBox_first.setEnabled(True)
+        self.spinBox_last.setEnabled(True)
 
     def buttons_activate_crop_volume(self):
         self.spinBox_first.setEnabled(True)
         self.spinBox_last.setEnabled(True)
-        self.push_Crop_volume.setEnabled(True)
+        self.spinBox_left.setEnabled(True)
+        self.spinBox_right.setEnabled(True)
+        self.spinBox_top.setEnabled(True)
+        self.spinBox_bottom.setEnabled(True)
+        #self.push_Crop_volume.setEnabled(True)
 
 
 
@@ -190,14 +213,23 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct.setText('Busy')
         self.pushReconstruct_all.setText('Busy\n')
         self.new = 1
-        self.extend_FOV_fixed_ImageJ_Stream = 0.25
+        self.extend_FOV_fixed_ImageJ_Stream = 0.05
 
         #ask for hdf5-file
         path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
-        self.path_klick = path_klick[0]
-        print('path klicked: ', self.path_klick)
 
-        #analyse and cut the path in pieces
+        if path_klick[0]:
+            self.path_klick = path_klick[0]
+            print('path klicked: ', self.path_klick)
+            self.cut_path_name()
+        else:
+            print("User cancelled the dialog.")
+            self.buttons_activate_load()
+
+
+
+    def cut_path_name(self):
+        #analyse and cut the path in pieces and get relevant information from raw-file
         htap = self.path_klick[::-1]
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         ni_htap = self.path_in[::-1]
@@ -237,12 +269,46 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             if round(self.graph[i]) == 1:  # notice the last projection at below 1.5°
                 self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
-
         print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
 
         if self.COR.value() == 0:
             self.COR.setValue(round(self.vol_proxy.shape[2] / 2))
             print('COR.setValue', round(self.vol_proxy.shape[2] / 2))
+
+        #prefill cropping
+        self.spinBox_first.setValue(0)
+        self.spinBox_last.setValue(self.vol_proxy.shape[1]-1)
+        print('set possible crop range')
+
+        #get and prefill pixel_size
+        if '/entry/instrument/NDAttributes/CT_Pixelsize' in f:
+            self.pixel_proxy = f['/entry/instrument/NDAttributes/CT_Pixelsize']
+            print('self.pixel_proxy', self.pixel_proxy[0], self.pixel_proxy[-1])
+            self.pixel_size.setValue(self.pixel_proxy[0])
+        else:
+            self.pixel_size.setValue(1)
+            print('pixel size not found')
+        self.pixel_size.setEnabled(True)
+
+        #get and prefill energy
+        if '/entry/instrument/NDAttributes/DMM_Energy' in f:
+            self.energy_proxy = f['/entry/instrument/NDAttributes/DMM_Energy']
+            print('self.energy_proxy', self.energy_proxy[0], self.energy_proxy[-1])
+            self.doubleSpinBox_Energy_2.setValue(self.energy_proxy[0])
+        else:
+            self.doubleSpinBox_Energy_2.setValue(1)
+            print('Energy size not found')
+        self.doubleSpinBox_Energy_2.setEnabled(True)
+
+        #get and prefill distance
+        if '/entry/instrument/NDAttributes/CT-Kamera-Z' in f:
+            self.distance_proxy = f['/entry/instrument/NDAttributes/CT-Kamera-Z']
+            print('self.distance_proxy', self.distance_proxy[0], self.distance_proxy[-1])
+            self.doubleSpinBox_distance_2.setValue((self.distance_proxy[0] + 25)/10)
+        else:
+            self.doubleSpinBox_distance_2.setValue(1)
+            print('Distance not found')
+        self.doubleSpinBox_distance_2.setEnabled(True)
 
         self.load()
 
@@ -251,7 +317,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.new = 1
 
         if self.comboBox_180_360.currentText() == '180 - axis centered':
-            self.extend_FOV_fixed_ImageJ_Stream = 0.15
+            self.extend_FOV_fixed_ImageJ_Stream = 0.05
         else:
             self.extend_FOV_fixed_ImageJ_Stream = 1.15
         print('extend FOV',self.extend_FOV_fixed_ImageJ_Stream)
@@ -303,11 +369,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         else:
             print('did not do ring handling')
 
-        #prefill cropping
-        self.spinBox_first.setValue(0)
-        self.spinBox_last.setValue(self.vol_proxy.shape[1]-1)
-        print('set possible crop range')
-
         #prefill rotation-speed[°/img]
         #Polynom fit for the angles
         poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
@@ -320,7 +381,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        #self.buttons_activate_crop_volume()
+        self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         print('Loading/changing slice complete!')
 
@@ -390,8 +451,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #apply phase retrieval if desired
         if self.checkBox_phase_2.isChecked() == True:
-            extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
             print('applying phase contrast')
+            extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
+
 
         #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
@@ -410,15 +472,23 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             slices = slices[:, round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2): -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2),round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2): -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2)]
         else:
             slices = slices[:, round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size): -round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size),round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size): -round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size)]
-
+        self.slice_size = slices.shape[1]
         slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
-        original_reconstruction = slices[0, :, :]
+
+        self.slice = slices[0,:,:]   #reduce dimensions from 3 to 2
+
+        if self.checkBox_ruler.isChecked():
+            self.add_ruler()
+
+
+        #crop before sending to ImageJ      spinBox_left
+        original_reconstruction = self.slice[self.spinBox_top.value():-self.spinBox_bottom.value()-1, self.spinBox_left.value():-self.spinBox_right.value()-1]
         print('original_reconstruction.shape', original_reconstruction.shape)
 
         # set image dimensions only for the first time or when scan-type was changed
         if self.new == 1:
             self.pv_rec['dimension'] = [
-                {'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1},
+                {'size': original_reconstruction.shape[1], 'fullSize': original_reconstruction.shape[1], 'binning': 1},
                 {'size': original_reconstruction.shape[0], 'fullSize': original_reconstruction.shape[0], 'binning': 1}]
             self.new = 0
 
@@ -450,12 +520,66 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        #self.buttons_activate_crop_volume()
+        self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         self.pushReconstruct.setText('Test')
         self.pushReconstruct_all.setText('Reconstruct\n Volume')
 
+    def add_ruler(self):
+        f = h5py.File(self.path_klick, 'r')
+        if '/entry/instrument/NDAttributes/CT_Piezo_X45' in f:
+            self.piezo_45_proxy = f['/entry/instrument/NDAttributes/CT_Piezo_X45']
+            print('self.piezo_45_proxy: ', self.piezo_45_proxy[0], self.piezo_45_proxy[-1],
+                  round(1000 * self.piezo_45_proxy[-1]))
+            self.piezo_135_proxy = f['/entry/instrument/NDAttributes/CT_Piezo_Y45']
+            print('self.piezo_135_proxy: ', self.piezo_135_proxy[0], self.piezo_135_proxy[-1],
+                  round(1000 * self.piezo_135_proxy[-1]))
+        else:
+            self.piezo_45_proxy = (0,0)
+            self.piezo_135_proxy = (0,0)
 
+
+        # add ruler +X
+        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())),
+                       round(self.slice.shape[1] / self.pixel_size.value()),
+                       round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
+            cv2.line(self.slice, (round(r * self.pixel_size.value()), 0),
+                     (round(r * self.pixel_size.value()), self.slice.shape[0]), (65535, 65535, 65535), 4)
+            cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1] / 5) * 5 + round(
+                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
+                        (round(r * self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                        (65535, 65535, 65535), thickness=2)
+
+        # add ruler -X
+        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())), 0,
+                       -round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
+            cv2.line(self.slice, (round(r * self.pixel_size.value()), 0),
+                     (round(r * self.pixel_size.value()), self.slice.shape[0]), (65535, 65535, 65535), 4)
+            cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1] / 5) * 5 + round(
+                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
+                        (round(r * self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                        (65535, 65535, 65535), thickness=2)
+
+        # add ruler +Y
+        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())),
+                       round(self.slice.shape[1] / self.pixel_size.value()),
+                       round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
+            cv2.line(self.slice, (0, round(r * self.pixel_size.value())),
+                     (self.slice.shape[1], round(r * self.pixel_size.value())), (65535, 65535, 65535), 4)
+            cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5 + round(
+                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
+                        (20, round(r * self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                        (65535, 65535, 65535), thickness=2)
+
+        # add ruler -Y
+        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())), 0,
+                       -round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
+            cv2.line(self.slice, (0, round(r * self.pixel_size.value())),
+                     (self.slice.shape[1], round(r * self.pixel_size.value())), (65535, 65535, 65535), 4)
+            cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5 + round(
+                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
+                        (20, round(r * self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                        (65535, 65535, 65535), thickness=2)
 
     def reconstruct_all(self):
         #grey out the buttons while program is busy
@@ -476,7 +600,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #create a folder when saving reconstructed volume as tif-files
         if self.save_tiff.isChecked() == True:
-            self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name
+            self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name +'_reco'
             os.mkdir(self.path_out_reconstructed_full)
         if self.save_hdf5.isChecked() == True:
             self.path_out_reconstructed_full = self.path_out_reconstructed_ask
@@ -498,11 +622,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print(new_list.shape)
 
         # create list with COR-positions
-        center_list = [self.COR.value() + round(self.extend_FOV * self.full_size)] * (self.number_of_used_projections)
+        center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
         print(len(center_list))
 
         #save parameters in csv-file
         file_name_parameter = self.path_out_reconstructed_full + '/' + self.folder_name + '_parameter.csv'
+        print(file_name_parameter)
         with open(file_name_parameter, mode = 'w', newline='') as parameter_file:
             csv_writer = csv.writer(parameter_file, delimiter = '\t', quotechar=' ')
             csv_writer.writerow(['Path input                    ', self.path_in,' '])
@@ -528,15 +653,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
         #divide volume into blocks and reconstruct them one by one in order to save RAM
+        #self.vol_proxy_crop = self.vol_proxy[:,self.spinBox_first.value():self.spinBox_last.value(),:]
         i = 0
-        while (i < math.ceil(self.vol_proxy.shape[1] / self.block_size)):       #Need to fix the rest of slices
+        while (i < math.ceil((self.spinBox_last.value() - self.spinBox_first.value()) / self.block_size)):       #Need to fix the rest of slices
 
-            print('Reconstructing block', i + 1, 'of', math.ceil(self.vol_proxy.shape[1] / self.block_size))
+            print('Reconstructing block', i + 1, 'of', math.ceil((self.spinBox_last.value() - self.spinBox_first.value()) / self.block_size))
 
-            FFs_vol = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, i * self.block_size: (i + 1) * self.block_size, :]
+            FFs_vol = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, i * self.block_size + self.spinBox_first.value(): (i + 1) * self.block_size + self.spinBox_first.value(), :]
             FFmean_vol = numpy.mean(FFs_vol, axis=0)
             print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean_vol.shape)
-            Sino_vol = self.vol_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), i * self.block_size: (i + 1) * self.block_size, :]
+            Sino_vol = self.vol_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), i * self.block_size + self.spinBox_first.value(): (i + 1) * self.block_size + self.spinBox_first.value(), :]
             self.Norm_vol = numpy.divide(Sino_vol - self.spinBox_DF.value(), FFmean_vol - self.spinBox_DF.value() - self.spinBox_back_illumination.value())
             print('sinogram shape', self.Norm_vol.shape)
 
@@ -566,7 +692,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             #extend data, take logarithm, remove NaN-values
             extended_sinos = self.Norm_vol[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm_vol.shape[0]), :, :]
 
-            extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV * self.full_size), mode='edge')
+            extended_sinos = tomopy.misc.morph.pad(extended_sinos, axis=2, npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size), mode='edge')
             extended_sinos = tomopy.minus_log(extended_sinos)
             #extended_sinos = (extended_sinos + 9.68) * 1000  # conversion factor to uint
             extended_sinos = numpy.nan_to_num(extended_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
@@ -589,17 +715,26 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             slices = slices * (10000 / self.pixel_size.value())
 
             #crop reconstructed data
-            slices = slices[:, round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2), round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2)]
+
+            if self.comboBox_180_360.currentText() == '180 - axis centered':
+                slices = slices[:, round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2): -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2),round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2): -round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size / 2)]
+            else:
+                slices = slices[:, round((self.extend_FOV_fixed_ImageJ_Stream - 1) * self.full_size): -round((self.extend_FOV_fixed_ImageJ_Stream - 1) * self.full_size),round((self.extend_FOV_fixed_ImageJ_Stream - 1) * self.full_size): -round((self.extend_FOV_fixed_ImageJ_Stream - 1) * self.full_size)]
+
+            #slices = slices[:, round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2), round(self.extend_FOV * self.full_size /2): -round(self.extend_FOV * self.full_size /2)]
             slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
+
+            original_reconstruction = slices[:, self.spinBox_top.value():-self.spinBox_bottom.value() - 1,self.spinBox_left.value():-self.spinBox_right.value() - 1]
+            print('original_reconstruction.shape', original_reconstruction.shape)
 
             #16-bit integer conversion
             if self.radioButton_16bit_integer.isChecked() == True:
-                ima3 = 65535 * (slices - self.int_low.value()) / (self.int_high.value() - self.int_low.value())
+                ima3 = 65535 * (original_reconstruction - self.int_low.value()) / (self.int_high.value() - self.int_low.value())
                 ima3 = numpy.clip(ima3, 1, 65534)
                 slices_save = ima3.astype(numpy.uint16)
 
             if self.radioButton_32bit_float.isChecked() == True:
-                slices_save = slices
+                slices_save = original_reconstruction
 
             print('Reconstructed Volume is', slices_save.shape)
 
@@ -610,7 +745,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 # write the reconstructed block to disk as TIF-file
                 a = 1
                 while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
-                    self.progressBar.setValue((a + (i * self.block_size)) * 100 / self.vol_proxy.shape[1])
+                    self.progressBar.setValue((a + (i * self.block_size)) * 100 / (self.spinBox_last.value() - self.spinBox_first.value()))
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
                     filename2 = self.path_out_reconstructed_full + self.namepart + '_' + str(
@@ -623,22 +758,30 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
             if self.save_hdf5.isChecked() == True:
                 if i == 0:
-                    # create an an hdf5-file and write the first reconstructed block into it
-                    with h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w') as f:
-                        f.create_dataset("Volume", data=slices_save, chunks = (1,self.hdf_chunking_y.value(),self.hdf_chunking_x.value()), maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
+                    # create an hdf5-file and write the first reconstructed block into it
+                    print(self.path_klick)
+                    with h5py.File(self.path_klick, 'r') as f1, h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w') as f:
+                        #f.create_dataset("Volume", data=slices_save, chunks = (1,self.hdf_chunking_y.value(),self.hdf_chunking_x.value()), maxshape=(min(slices_save.shape[0],self.spinBox_last.value()-self.spinBox_first.value()), slices_save.shape[1], slices_save.shape[2]))
+                        self.hdf_chunking_size_x = math.ceil(slices_save.shape[2]/self.hdf_chunking_x.value())
+                        self.hdf_chunking_size_y = math.ceil(slices_save.shape[1]/self.hdf_chunking_y.value())
+                        f.create_dataset("Volume", dtype='uint16', data=slices_save, chunks = (self.block_size,self.hdf_chunking_size_y,self.hdf_chunking_size_x), maxshape=(None, slices_save.shape[1], slices_save.shape[2]))
+                        f.create_group('/raw_data/instrument')
+                        f1.copy('/entry/instrument/NDAttributes', f['/raw_data/instrument'])
+                        f1.copy('/entry/instrument/performance', f['/raw_data/instrument'])
+
                 else:
                     # write the subsequent blocks into the hdf5-file
-                    self.progressBar.setValue((i * self.block_size) * 100 / self.vol_proxy.shape[1])
+                    self.progressBar.setValue((i * self.block_size) * 100 / (self.spinBox_last.value() - self.spinBox_first.value()))
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
                     f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'r+')
                     vol_proxy_save = f['Volume']
-                    print('volume_proxy_save.shape', vol_proxy_save.shape)
                     vol_proxy_save.resize((vol_proxy_save.shape[0] + slices_save.shape[0]), axis=0)
                     vol_proxy_save[i * self.block_size : i * self.block_size + slices_save.shape[0] ,:,:] = slices_save
-
-
+                    print(vol_proxy_save.dtype)
+                    print('volume_proxy_save.shape', vol_proxy_save.shape)
             i = i + 1
+
 
         #set progress bar to 100%
         self.progressBar.setValue(100)
@@ -648,7 +791,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #ungrey the buttons for further use of the program
         self.buttons_activate_load()
         self.buttons_activate_reco()
-        #self.buttons_activate_crop_volume()
+        self.buttons_activate_crop_volume()
         self.buttons_activate_reco_all()
         self.pushReconstruct.setText('Test')
         self.pushReconstruct_all.setText('Reconstruct\n Volume')
