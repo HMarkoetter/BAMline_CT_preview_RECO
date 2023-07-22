@@ -78,6 +78,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.new = 1
         self.extend_FOV_fixed_ImageJ_Stream = 1.0
         self.ruler_grid_line_thickness = 4
+        self.rotation_offset = 45   #still under question
+        self.label_x = 'Piezo 45 [um]'
+        self.label_y = 'Piezo 135 [um]'
 
         #ask for hdf5-file
         path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
@@ -239,7 +242,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             self.pixel_size.setValue(1)
             #print('pixel size not found')
-        self.pixel_size.setEnabled(True)
+        #self.pixel_size.setEnabled(True)
 
     def prefill_energy(self):
         #print('function prefill_energy')
@@ -251,7 +254,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             self.doubleSpinBox_Energy_2.setValue(1)
             #print('Energy not found')
-        self.doubleSpinBox_Energy_2.setEnabled(True)
+        #self.doubleSpinBox_Energy_2.setEnabled(True)
 
     def prefill_distance(self):
         #print('function prefill_distance')
@@ -264,7 +267,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             self.doubleSpinBox_distance_2.setValue(0)
             #print('Distance not found')
-        self.doubleSpinBox_distance_2.setEnabled(True)
+        #self.doubleSpinBox_distance_2.setEnabled(True)
         QtWidgets.QApplication.processEvents()
         #print('prefill distance done')
 
@@ -328,19 +331,16 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         #self.reconstruct()
 
     def add_ruler(self):
-        #print('function add_ruler')
         self.f = h5py.File(self.path_klick, 'r')
         if '/entry/instrument/NDAttributes/CT_Piezo_X45' in self.f:
             self.piezo_45_proxy = self.f['/entry/instrument/NDAttributes/CT_Piezo_X45']
-            #print('self.piezo_45_proxy: ', self.piezo_45_proxy[0], self.piezo_45_proxy[-1],round(1000 * self.piezo_45_proxy[-1]))
             self.piezo_135_proxy = self.f['/entry/instrument/NDAttributes/CT_Piezo_Y45']
-            #print('self.piezo_135_proxy: ', self.piezo_135_proxy[0], self.piezo_135_proxy[-1],round(1000 * self.piezo_135_proxy[-1]))
+
         else:
             self.piezo_45_proxy = (0,0)
             self.piezo_135_proxy = (0,0)
 
         if 'pixel_proxy' in globals():
-            #print('pixel_proxy', self.pixel_proxy[-1])
             if self.pixel_proxy[-1] == 3.6:
                 self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
             elif self.pixel_proxy[-1] == 1.44:
@@ -350,17 +350,21 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             elif self.pixel_proxy[-1] == 0.36:
                 self.spinBox_ruler_grid = self.spinBox_ruler_grid_4.value()
         else:
-            #print('pixel size undefined. Set to spinBox_ruler_grid_1')
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
-        #print('self.spinBox_ruler_grid', self.spinBox_ruler_grid)
 
-        print('numpy.max', numpy.max(self.slice), round(numpy.max(self.slice)))
         self.ruler_grid_color = math.ceil(numpy.max(self.slice))
+
         # draws a circle with the detector size as diameter
         cv2.circle(self.slice, (round(self.slice.shape[1] / 2), round(self.slice.shape[1] / 2)), round(self.full_size/2), self.ruler_grid_color, self.ruler_grid_line_thickness)
 
         if self.grid_micrometer.isChecked() == True:
-            print(self.pixel_size.value())
+
+            # add label x
+            cv2.putText(self.slice, self.label_x, (
+            round(self.slice.shape[1] * self.pixel_size.value() / 2) + 20, round(self.ruler_grid_line_thickness) * 40),
+                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
+                        thickness=self.ruler_grid_line_thickness)
+
             # add ruler +X
             for r in range(round(self.slice.shape[1] * self.pixel_size.value() / 2),
                            round(self.slice.shape[1] * self.pixel_size.value()),
@@ -380,6 +384,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                     r  / 5) * 5  -  round(self.slice.shape[1] * (self.pixel_size.value() / 10)) * 5),
                             (round(r / self.pixel_size.value()) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
                             self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
+
+
+            # add label Y
+            cv2.putText(self.slice, self.label_y, (20, round(self.slice.shape[1] * self.pixel_size.value() / 2) -40),
+                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
+                        thickness=self.ruler_grid_line_thickness)
 
             # add ruler +Y
             for r in range(round(self.slice.shape[1] * self.pixel_size.value() / 2),
@@ -402,7 +412,16 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                             (20, round(r / self.pixel_size.value()) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
                             self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
 
+
+
         if self.grid_pixel.isChecked() == True:
+
+            # add label x
+            cv2.putText(self.slice, 'Pixel', (
+                round(self.slice.shape[1] * self.pixel_size.value() / 2) + 20,
+                round(self.ruler_grid_line_thickness) * 40),
+                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
+                        thickness=self.ruler_grid_line_thickness)
 
             # add ruler +X
             for r in range(round(self.slice.shape[1] / 2), self.slice.shape[1], round(self.spinBox_pixel_grid.value())):
@@ -414,6 +433,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                 #print(r)
                 cv2.line(self.slice, (r, 0),   (r, self.slice.shape[1]), (65535, 65535, 65535), self.ruler_grid_line_thickness)
                 cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (r + 20, round(self.ruler_grid_line_thickness/2)*20), cv2.FONT_HERSHEY_SIMPLEX, self.ruler_grid_line_thickness/2, (65535, 65535, 65535), thickness=self.ruler_grid_line_thickness)
+
+
+            # add label Y
+            cv2.putText(self.slice, 'Pixel',
+                        (20, round(self.slice.shape[1] * self.pixel_size.value() / 2) - 40),
+                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
+                        thickness=self.ruler_grid_line_thickness)
 
             # add ruler +Y
             for r in range(round(self.slice.shape[1] / 2), self.slice.shape[1], round(self.spinBox_pixel_grid.value())):
@@ -438,7 +464,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         #print('number of projections used for reconstruction (omitting those above 180°): ', self.number_of_used_projections)
 
         # create list with all projection angles
-        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W + self.graph[-1]) * math.pi / 180
+        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W + self.graph[-1] + self.rotation_offset) * math.pi / 180
         #print('new list in radiant', new_list)
 
         if 'pixel_proxy' in globals():
