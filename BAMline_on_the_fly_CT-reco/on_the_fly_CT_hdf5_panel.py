@@ -538,48 +538,75 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.piezo_45_proxy = (0,0)
             self.piezo_135_proxy = (0,0)
 
+        # draws a circle with the detector size as diameter
+        cv2.circle(self.slice, (round(self.slice.shape[1] / 2), round(self.slice.shape[1] / 2)), 1280, (255, 255, 255), 4)
 
-        # add ruler +X
-        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())),
-                       round(self.slice.shape[1] / self.pixel_size.value()),
-                       round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
-            cv2.line(self.slice, (round(r * self.pixel_size.value()), 0),
-                     (round(r * self.pixel_size.value()), self.slice.shape[0]), (65535, 65535, 65535), 4)
-            cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1] / 5) * 5 + round(
-                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
-                        (round(r * self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
-                        (65535, 65535, 65535), thickness=2)
+        if self.grid_micrometer.isChecked() == True:
+            print(self.pixel_size.value())
+            # add ruler +X
+            for r in range(round(self.slice.shape[1] * self.pixel_size.value() / 2),
+                           round(self.slice.shape[1] * self.pixel_size.value()),
+                           round(self.spinBox_ruler_grid.value())):
+                cv2.line(self.slice, (round(r / self.pixel_size.value()), 0),
+                         (round(r / self.pixel_size.value()), self.slice.shape[0]), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1]/  5) * 5   +   round( r / 5) * 5   -   round(self.slice.shape[1] * (self.pixel_size.value() / 10)) * 5),
+                            (round(r / self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                            (65535, 65535, 65535), thickness=2)
 
-        # add ruler -X
-        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())), 0,
-                       -round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
-            cv2.line(self.slice, (round(r * self.pixel_size.value()), 0),
-                     (round(r * self.pixel_size.value()), self.slice.shape[0]), (65535, 65535, 65535), 4)
-            cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1] / 5) * 5 + round(
-                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
-                        (round(r * self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
-                        (65535, 65535, 65535), thickness=2)
+            # add ruler -X
+            for r in range(round(self.slice.shape[1] * self.pixel_size.value() / 2), 0,
+                           -round(self.spinBox_ruler_grid.value())):
+                cv2.line(self.slice, (round(r / self.pixel_size.value()), 0),
+                         (round(r / self.pixel_size.value()), self.slice.shape[0]), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1] / 5) * 5  +  round(
+                    r  / 5) * 5  -  round(self.slice.shape[1] * (self.pixel_size.value() / 10)) * 5),
+                            (round(r / self.pixel_size.value()) + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                            (65535, 65535, 65535), thickness=2)
 
-        # add ruler +Y
-        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())),
-                       round(self.slice.shape[1] / self.pixel_size.value()),
-                       round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
-            cv2.line(self.slice, (0, round(r * self.pixel_size.value())),
-                     (self.slice.shape[1], round(r * self.pixel_size.value())), (65535, 65535, 65535), 4)
-            cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5 + round(
-                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
-                        (20, round(r * self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
-                        (65535, 65535, 65535), thickness=2)
+            # add ruler +Y
+            for r in range(round(self.slice.shape[1] * self.pixel_size.value() / 2),
+                           round(self.slice.shape[1] * self.pixel_size.value()),
+                           round(self.spinBox_ruler_grid.value())):
+                cv2.line(self.slice, (0, round(r / self.pixel_size.value())),
+                         (self.slice.shape[1], round(r / self.pixel_size.value())), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5  +  round(
+                    r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() / 10)) * 5),
+                            (20, round(r / self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                            (65535, 65535, 65535), thickness=2)
 
-        # add ruler -Y
-        for r in range(round(self.slice.shape[1] / (2 * self.pixel_size.value())), 0,
-                       -round(self.spinBox_ruler_grid.value() / self.pixel_size.value())):
-            cv2.line(self.slice, (0, round(r * self.pixel_size.value())),
-                     (self.slice.shape[1], round(r * self.pixel_size.value())), (65535, 65535, 65535), 4)
-            cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5 + round(
-                r * self.pixel_size.value() / 5) * 5 - round(self.slice.shape[1] / 10) * 5),
-                        (20, round(r * self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
-                        (65535, 65535, 65535), thickness=2)
+            # add ruler -Y
+            for r in range(round(self.slice.shape[1] * self.pixel_size.value() / 2), 0,
+                           -round(self.spinBox_ruler_grid.value())):
+                cv2.line(self.slice, (0, round(r / self.pixel_size.value())),
+                         (self.slice.shape[1], round(r / self.pixel_size.value())), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5 + round(
+                    r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value()/ 10)) * 5),
+                            (20, round(r / self.pixel_size.value()) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750,
+                            (65535, 65535, 65535), thickness=2)
+
+        if self.grid_pixel.isChecked() == True:
+
+            # add ruler +X
+            for r in range(round(self.slice.shape[1] / 2), self.slice.shape[1], round(self.spinBox_pixel_grid.value())):
+                cv2.line(self.slice, (r, 0),   (r, self.slice.shape[1]), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (r + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+            # add ruler -X
+            for r in range(round(self.slice.shape[1] / 2), 0, -round(self.spinBox_pixel_grid.value())):
+                print(r)
+                cv2.line(self.slice, (r, 0),   (r, self.slice.shape[1]), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (r + 20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+            # add ruler +Y
+            for r in range(round(self.slice.shape[1] / 2), self.slice.shape[1], round(self.spinBox_pixel_grid.value())):
+                cv2.line(self.slice, (0, r), (self.slice.shape[1], r), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (20,r + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
+            # add ruler -Y
+            for r in range(round(self.slice.shape[1] / 2), 0, -round(self.spinBox_pixel_grid.value())):
+                cv2.line(self.slice, (0, r), (self.slice.shape[1], r), (65535, 65535, 65535), 4)
+                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (20,r + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.750, (65535, 65535, 65535), thickness=2)
+
 
     def reconstruct_all(self):
         #grey out the buttons while program is busy

@@ -775,7 +775,7 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QRadioButton" name="radioButton">
+        <widget class="QRadioButton" name="grid_micrometer">
          <property name="text">
           <string>µm</string>
          </property>
@@ -785,7 +785,7 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item row="0" column="2">
-        <widget class="QRadioButton" name="radioButton_2">
+        <widget class="QRadioButton" name="grid_pixel">
          <property name="text">
           <string>pixel</string>
          </property>
@@ -1429,7 +1429,7 @@ p, li { white-space: pre-wrap; }
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="save_tif_hdf5"/>
   <buttongroup name="buttonGroup16_32bit"/>
+  <buttongroup name="save_tif_hdf5"/>
  </buttongroups>
 </ui>
