@@ -11,10 +11,13 @@ import csv
 import cv2                                      #to install package with pycharm search for "opencv-python"
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
+import epics
+import matplotlib.pyplot as plt
+#import Image
 
 
 # On-the-fly Navigator
-version =  "Version 2023.07.20 a"
+version =  "Version 2023.07.31 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:Navigator'
@@ -22,6 +25,11 @@ channel_name = 'BAMline:Navigator'
 standard_path = r'C:/delete/reg_data/18_230606_2044_AlTi_F_Ref_tomo___Z25_Y6500_25000eV_10x_400ms'
 
 Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window = loadUiType('on_the_fly_navigator.ui')  # connect to the GUI for the program
+
+plt.ion()
+fig,(ax,ax2) = plt.subplots(2,1)
+imgplotted = ax.imshow(numpy.zeros((1500,640)),vmin=0,vmax=65535)
+angles, = ax2.plot(0,0,'o',color='red', )
 
 
 class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window):
@@ -70,6 +78,49 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.Qchannel_name.setText(channel_name)
         self.pvaServer.start()
 
+        self.fig, self.ax = plt.subplots()
+
+        #pvname = "PCOEdge:image1:ArrayData"
+        #self.pvname = "PEGAS:miocb0101004.RBV"
+        #img_pv = epics.PV(pvname, auto_monitor=True)
+
+        self.omega_pv = epics.PV("PEGAS:miocb0101004.RBV")
+        self.piezo45_pv = epics.PV("micronix:m2.RBV")
+        self.piezo135_pv = epics.PV("micronix:m1.RBV")
+        self.energy_pv = epics.PV("Energ:25000007rbv")
+        self.distance_pv = epics.PV("faulhaber:m1.RBV")
+        self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
+        self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquireTime_RBV")
+        self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
+        self.W_velocity_pv = epics.PV("PEGAS:miocb0101004.VELO")
+
+        self.sizeX_pv = epics.PV("PCOEdge:cam1:SizeX_RBV")
+        self.sizeY_pv = epics.PV("PCOEdge:cam1:SizeY_RBV")
+
+
+        self.binningx_pv = epics.PV("PCOEdge:cam1:BinX_RBV")
+        self.binningy_pv = epics.PV("PCOEdge:cam1:BinY_RBV")
+
+        self.binningx,self.binningy = self.binningx_pv.get(),self.binningy_pv.get()
+
+        #self.sizeX, self.sizeY = round(self.sizeX_pv.get()/self.binningx), round(self.sizeY_pv.get()/self.binningy)
+        self.sizeX, self.sizeY = self.sizeX_pv.get(),  self.sizeY_pv.get()
+
+        self.ringbuffer_exists = 0
+
+        if self.W_velocity_pv.get() != 0:
+            self.ringbuffer_size = (
+            round(360 / (self.W_velocity_pv.get() * self.exp_time_pv.get())), 1, self.sizeX_pv.get())
+            print('ringbuffer_size', self.ringbuffer_size)
+        else:
+            print('No rotation detected!')
+
+        self.i = 0
+
+        self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
+        self.image_pv.add_callback(self.update)
+
+
     def set_path(self):
         print('function set_path')
 
@@ -90,6 +141,48 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             print("User cancelled the dialog.")
             self.buttons_activate_load()
+
+    def create_ringbuffer(self):
+        self.ringbuffer = numpy.zeros(self.ringbuffer_size, dtype='H')
+        self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
+
+        self.ringbuffer_exists = 1
+        print('ringbuffer created with size: ', self.ringbuffer.shape)
+
+    def update(self, **kwargs):
+
+        if self.ringbuffer_exists == 0:
+            self.create_ringbuffer()
+
+        print('update function')
+        rawimgflat = self.image_pv.get()
+        #print(self.image_pv.get())
+
+        print('omega_pv', self.omega_pv.get(),'piezo45_pv', self.piezo45_pv.get(),'piezo135_pv', self.piezo135_pv.get(),'energy_pv', self.energy_pv.get(),'distance_pv', self.distance_pv.get(),'lens_pv', self.lens_pv.get(),'sizeX_pv', self.sizeX_pv.get(),'sizeY_pv', self.sizeY_pv.get())
+        #self.im_size = (self.sizeX,self.sizeY)
+        rawimg2d = numpy.frombuffer(rawimgflat, dtype='H').reshape((self.sizeY,self.sizeX))
+        print(rawimg2d)
+
+        #self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimg2d[self.slice_number.value(), : ]
+        self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[
+                                                                  -(round(self.sizeY / 2) + 1) * self.sizeX: -round(
+                                                                      self.sizeY / 2) * self.sizeX]
+
+        self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = float(self.omega_pv.get())
+        print('Micos_W Ringbuffer', float(self.omega_pv.get()))
+        #, self.ringbuffer_Micos_W)
+
+        if (self.i % 10) == 0:
+            print('FEEDING IMAGE')
+            sinogram = self.ringbuffer[:,0,:]
+            imgplotted.set_data(sinogram)
+            angles.set_data(float(self.omega_pv.get()) % 360, self.i)
+            fig.canvas.flush_events()
+            #plt.imshow(sinogram, cmap='gray')
+            #plt.show()
+
+        print('i', self.i, 'Modulus:', self.i % self.ringbuffer_size[0])
+        self.i = self.i +1
 
     def cut_path_name(self):
         print('function cut_path_name')
@@ -212,6 +305,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             self.COR_4.setValue(round(self.vol_proxy.shape[2] / 2))
 
     def prefill_pixel_size(self):
+
+
+
         if '/entry/instrument/NDAttributes/CT_Pixelsize' in self.f:
             self.pixel_proxy = self.f['/entry/instrument/NDAttributes/CT_Pixelsize']
             self.pixel_size.setValue(self.pixel_proxy[-1])
@@ -230,6 +326,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
 
     def prefill_energy(self):
+        #self.energy_pv.get()
+        self.doubleSpinBox_Energy_2.setValue(round(float(self.energy_pv.get()) * 100) / 100)
+        """
         if '/entry/instrument/NDAttributes/DMM_Energy' in self.f:
             self.energy_proxy = self.f['/entry/instrument/NDAttributes/DMM_Energy']
             self.doubleSpinBox_Energy_2.setValue(round(self.energy_proxy[-1]*100)/100)
@@ -237,9 +336,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             self.doubleSpinBox_Energy_2.setValue(1)
             #print('Function prefill_energy: Energy not found')
-
+        """
 
     def prefill_distance(self):
+
+        self.doubleSpinBox_distance_2.setValue(round(float(self.distance_pv.get()) + 25))
+        """
         if '/entry/instrument/NDAttributes/CT-Kamera-Z' in self.f:
             self.distance_proxy = self.f['/entry/instrument/NDAttributes/CT-Kamera-Z']
             self.doubleSpinBox_distance_2.setValue(round(self.distance_proxy[-1] + 25))
@@ -247,6 +349,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             self.doubleSpinBox_distance_2.setValue(0)
             #print('Function prefill_distance: Not found. Set to 0')
+        """
         QtWidgets.QApplication.processEvents()
 
 
