@@ -323,7 +323,7 @@ p, li { white-space: pre-wrap; }
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Rot-speed[°/img]</string>
+          <string>Rot-step[°/img]</string>
          </property>
         </widget>
        </item>
