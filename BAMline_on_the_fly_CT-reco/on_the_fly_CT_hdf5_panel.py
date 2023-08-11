@@ -11,6 +11,7 @@ import csv
 import cv2                                      #to install package with pycharm by finding "opencv-python"
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
+import algotom.prep.removal as rem
 
 # On-the-fly-CT Reco
 version =  "Version 2023.07.04 a"
@@ -357,28 +358,41 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #Ring artifact handling
 
         if self.spinBox_ringradius.value() != 0:
+            print('ring handling')
+
+            self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
+
+
+            """
             self.proj_sum = numpy.mean(self.Norm, axis = 0)
             self.proj_sum_2d = numpy.zeros((1, self.proj_sum.shape[0]), dtype = numpy.float32)
             self.proj_sum_2d[0,:] = self.proj_sum
             print('proj_sum dimensions', self.proj_sum.shape)
             print('proj_sum_2d dimensions', self.proj_sum_2d.shape)
-
+            
             proj_sum_filtered = median_filter(self.proj_sum_2d, size = (1,self.spinBox_ringradius.value()), mode='nearest')
             print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
             correction_map = numpy.divide(self.proj_sum_2d, proj_sum_filtered)
             correction_map = numpy.clip(correction_map, 0.5, 2.0)
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
-
+            
             i=0
             while i < self.Norm.shape[0]:
                 self.Norm[i, :] = numpy.divide(self.Norm[i, :], correction_map[0,:])
                 self.progressBar.setValue((i + 1) * 100 / self.Norm.shape[0])
                 QtWidgets.QApplication.processEvents()
                 i = i+1
+
+            """
+
             print('Norm.shape', self.Norm.shape)
             print('finished ring handling')
         else:
             print('did not do ring handling')
+
+
+
+
 
         #prefill rotation-speed[°/img]
         #Polynom fit for the angles, changed /4 to /2 and 3/4 to 7/8
@@ -467,6 +481,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('applying phase contrast')
             extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
+        print('ring_filter sino_shape', extended_sinos[:,0,:].shape)
+
+        #extended_sinos[:,0,:] = rem.remove_stripe_based_sorting(extended_sinos[:,0,:], size=21)
+        #extended_sinos = algotom.prep.removal.remove_stripe_based_filtering(extended_sinos, sigma=3, size=21)
 
         #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
