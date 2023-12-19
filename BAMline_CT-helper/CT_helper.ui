@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>658</width>
-    <height>712</height>
+    <width>655</width>
+    <height>696</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -211,6 +211,9 @@
          </item>
          <item row="7" column="0">
           <widget class="QLabel" name="label_19">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="text">
             <string>Height travel  [mm]</string>
            </property>
@@ -219,7 +222,7 @@
          <item row="8" column="1">
           <widget class="QDoubleSpinBox" name="height_speed">
            <property name="enabled">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <property name="font">
             <font>
@@ -255,6 +258,9 @@
          </item>
          <item row="8" column="0">
           <widget class="QDoubleSpinBox" name="height_travel">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="decimals">
             <number>3</number>
            </property>
@@ -271,6 +277,9 @@
          </item>
          <item row="7" column="1">
           <widget class="QLabel" name="label_20">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="text">
             <string>Height speed  [mm/s]</string>
            </property>
@@ -278,6 +287,9 @@
          </item>
          <item row="6" column="0">
           <widget class="QLabel" name="label_21">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="text">
             <string>Helix-Option:</string>
            </property>
@@ -702,7 +714,7 @@
       </widget>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Interlaced CT</string>
+        <string>Seq.-based CT</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_2">
         <item row="0" column="0">
@@ -1733,8 +1745,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>658</width>
-     <height>26</height>
+     <width>655</width>
+     <height>18</height>
     </rect>
    </property>
   </widget>
