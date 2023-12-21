@@ -30,6 +30,11 @@ class Radio_Theta2_avg(Ui_Theta2_avg_Window, Q_Theta2_avg_Window):
         self.pushLoad.clicked.connect(self.set_path)
         self.pushCompute.clicked.connect(self.compute)
         self.doubleSpinBox_Shift.valueChanged.connect(self.check)
+        self.x_start.valueChanged.connect(self.load)
+        self.x_end.valueChanged.connect(self.load)
+        self.y_start.valueChanged.connect(self.load)
+        self.y_end.valueChanged.connect(self.load)
+
 
 
         #### from tomostream.py, nikitinvv git, micha
@@ -95,6 +100,13 @@ class Radio_Theta2_avg(Ui_Theta2_avg_Window, Q_Theta2_avg_Window):
         self.vol_proxy_ff = f_ff['/entry/data/data']
         print('raw data ff volume size: ', self.vol_proxy_ff.shape)
 
+        self.x_start.setMinimum(0)
+        self.x_start.setMaximum(self.vol_proxy_proj.shape[1])
+        self.x_end.setMaximum(self.vol_proxy_proj.shape[1])
+
+        self.y_start.setMinimum(0)
+        self.y_start.setMaximum(self.vol_proxy_proj.shape[2])
+        self.y_end.setMaximum(self.vol_proxy_proj.shape[2])
 
         self.load()
 
@@ -106,7 +118,8 @@ class Radio_Theta2_avg(Ui_Theta2_avg_Window, Q_Theta2_avg_Window):
 
         self.min_size = min(FFs.shape[0],Proj.shape[0])
 
-        self.Norm_stack = numpy.divide(numpy.subtract(Proj[0:self.min_size,:,:], self.spinBox_DF.value()), numpy.subtract(FFs[0:self.min_size,:,:], self.spinBox_DF.value()))
+        self.Norm_stack = numpy.divide(numpy.subtract(Proj[0:self.min_size,self.x_start.value():self.x_end.value(),self.y_start.value():self.y_end.value()], self.spinBox_DF.value()),
+                                       numpy.subtract(FFs[0:self.min_size,self.x_start.value():self.x_end.value(),self.y_start.value():self.y_end.value()], self.spinBox_DF.value()))
 
 
 

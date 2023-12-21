@@ -275,9 +275,8 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             self.piezo_45_proxy = (0,0)
             self.piezo_135_proxy = (0,0)
 
-
         if self.pixel_size.value() != 1:
-            if self.pixel_proxy[-1] == 3.6:
+            if self.pixel_proxy[-1] == 3.61:
                 self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
                 #print('Pixel Size is: 3.6')
             elif self.pixel_proxy[-1] == 1.44:
@@ -289,6 +288,8 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             elif self.pixel_proxy[-1] == 0.36:
                 self.spinBox_ruler_grid = self.spinBox_ruler_grid_4.value()
                 #print('Pixel Size is: 0.36')
+            else:
+                self.spinBox_ruler_grid = 200
         else:
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
             print('Pixel Size unknown.')
@@ -403,8 +404,10 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         # create list with all projection angles
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W + self.graph[-1] + self.rotation_offset) * math.pi / 180
 
+
+
         if self.pixel_size.value() != 1:
-            if self.pixel_proxy[-1] == 3.6:
+            if self.pixel_proxy[-1] == 3.61:
                 self.COR = self.COR_1.value()
             elif self.pixel_proxy[-1] == 1.44:
                 self.COR = self.COR_2.value()
@@ -412,8 +415,11 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                 self.COR = self.COR_3.value()
             elif self.pixel_proxy[-1] == 0.36:
                 self.COR = self.COR_4.value()
+            else:
+                self.COR = 50
         else:
             self.COR = self.COR_1.value()
+            print('Pixel Size unknown. Use COR_1')
 
         center_list = [self.COR + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
 

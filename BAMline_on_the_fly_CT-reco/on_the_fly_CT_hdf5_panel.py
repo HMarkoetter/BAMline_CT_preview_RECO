@@ -11,6 +11,7 @@ import csv
 import cv2                                      #to install package with pycharm by finding "opencv-python"
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
+import algotom.prep.removal as rem
 
 # On-the-fly-CT Reco
 version =  "Version 2023.07.04 a"
@@ -234,8 +235,19 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
         ni_htap = self.path_in[::-1]
         self.last_folder = self.path_in[len(ni_htap) - ni_htap.find('/') - 1 :  :1]
+        print('self.last_folder', self.last_folder)
+
         self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 1: 1]
         self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
+
+
+        self.base_folder = self.path_in[ : len(htap) - len(self.last_folder) - len(self.namepart) - len(self.filetype)]
+        print('self.base_folder', self.base_folder)
+        redlof_esab = self.base_folder[::-1]
+
+        self.sample_folder_name = self.base_folder[len(redlof_esab) - redlof_esab.find('/') - 1 :  :1]
+        print('sample_folder_name', self.sample_folder_name)
+
         print('chopped path: ',self.path_in, '  ', self.last_folder,'  ', self.namepart,'  ', self.filetype)
         self.Sample.setText(self.path_klick)
 
@@ -265,10 +277,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #find rotation start
         i = 0
-        while i < self.graph.shape[0]:
-            if round(self.graph[i]) == 1:  # notice the last projection at below 1.5°
-                self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
+        while round(self.graph[i]) < 1:  # notice the last projection at below 1.5°
+            self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
+        #print(self.graph[1021:1500])
         print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
 
         if self.COR.value() == 0:
@@ -334,7 +346,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         Sino = self.vol_proxy[self.spinBox_number_FFs.value() : -self.spinBox_number_FFs.value(), self.slice_number.value(), :]
         self.Norm = numpy.divide(numpy.subtract(Sino, self.spinBox_DF.value()), numpy.subtract(FFmean, self.spinBox_DF.value() + self.spinBox_back_illumination.value()))
         #self.Norm = numpy.divide(Sino, FFmean)
-        print('Norm shape', self.Norm.shape, self.Norm[100,100])
+        print('Norm shape', self.Norm.shape)
         self.spinBox_DF_in_ram = self.spinBox_DF.value()
         self.spinBox_back_illumination_in_ram = self.spinBox_back_illumination.value()
         self.slice_in_ram = self.slice_number.value()
@@ -346,32 +358,45 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #Ring artifact handling
 
         if self.spinBox_ringradius.value() != 0:
+            print('ring handling')
+
+            self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
+
+
+            """
             self.proj_sum = numpy.mean(self.Norm, axis = 0)
             self.proj_sum_2d = numpy.zeros((1, self.proj_sum.shape[0]), dtype = numpy.float32)
             self.proj_sum_2d[0,:] = self.proj_sum
             print('proj_sum dimensions', self.proj_sum.shape)
             print('proj_sum_2d dimensions', self.proj_sum_2d.shape)
-
+            
             proj_sum_filtered = median_filter(self.proj_sum_2d, size = (1,self.spinBox_ringradius.value()), mode='nearest')
             print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
             correction_map = numpy.divide(self.proj_sum_2d, proj_sum_filtered)
             correction_map = numpy.clip(correction_map, 0.5, 2.0)
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
-
+            
             i=0
             while i < self.Norm.shape[0]:
                 self.Norm[i, :] = numpy.divide(self.Norm[i, :], correction_map[0,:])
                 self.progressBar.setValue((i + 1) * 100 / self.Norm.shape[0])
                 QtWidgets.QApplication.processEvents()
                 i = i+1
+
+            """
+
             print('Norm.shape', self.Norm.shape)
             print('finished ring handling')
         else:
             print('did not do ring handling')
 
+
+
+
+
         #prefill rotation-speed[°/img]
-        #Polynom fit for the angles
-        poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
+        #Polynom fit for the angles, changed /4 to /2 and 3/4 to 7/8
+        poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /2) : round((self.w.shape[0] + 1) * 7/8) ])), self.w[round((self.w.shape[0] + 1) /2) : round((self.w.shape[0] + 1) * 7/8) ], 1, rcond=None, full=False, w=None, cov=False)
         print('Polynom coefficients',poly_coeff, '   Detected angular step per image: ', poly_coeff[0])
         self.speed_W.setValue(poly_coeff[0])
         print('Last projection at 0 degree/still speeding up: image number', self.last_zero_proj)
@@ -404,11 +429,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.number_of_projections = self.Norm.shape[0]
 
         #check if the scan was 180° or 360°
-        if self.number_of_projections * self.speed_W.value() >= 270:
+        if self.graph[-1] >= 350:
             self.number_of_used_projections = round(360 / self.speed_W.value())
+            print('360°')
         else:
             #print('smaller than 3/2 Pi')
             self.number_of_used_projections = round(180 / self.speed_W.value())
+            print('180°')
         print('number of projections used for reconstruction (omitting those above 180°/360°: )', self.number_of_used_projections)
 
         # create list with all projection angles
@@ -454,6 +481,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('applying phase contrast')
             extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
+        print('ring_filter sino_shape', extended_sinos[:,0,:].shape)
+
+        #extended_sinos[:,0,:] = rem.remove_stripe_based_sorting(extended_sinos[:,0,:], size=21)
+        #extended_sinos = algotom.prep.removal.remove_stripe_based_filtering(extended_sinos, sigma=3, size=21)
 
         #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
@@ -627,10 +658,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #create a folder when saving reconstructed volume as tif-files
         if self.save_tiff.isChecked() == True:
-            self.path_out_reconstructed_full = self.path_out_reconstructed_ask + '/'+ self.folder_name +'_reco'
-            os.mkdir(self.path_out_reconstructed_full)
+            self.path_out_reconstructed_full = self.path_out_reconstructed_ask + self.sample_folder_name + self.folder_name +'_reco'
         if self.save_hdf5.isChecked() == True:
-            self.path_out_reconstructed_full = self.path_out_reconstructed_ask
+            self.path_out_reconstructed_full = self.path_out_reconstructed_ask + self.sample_folder_name
+
+        os.makedirs(self.path_out_reconstructed_full, exist_ok = True)
+        print('self.path_out_reconstructed_full', self.path_out_reconstructed_full)
 
         #determine how far to extend field of view (FOV), 0.0 no extension, 0.5 half extension, 1.0 full extension to both sides (for off center 360 degree scans!!!)
         self.extend_FOV = (2 * (abs(self.COR.value() - self.Norm.shape[1]/2))/ (self.Norm.shape[1])) + 0.15
@@ -653,7 +686,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print(len(center_list))
 
         #save parameters in csv-file
-        file_name_parameter = self.path_out_reconstructed_full + '/' + self.folder_name + '_parameter.csv'
+        file_name_parameter = self.path_out_reconstructed_full + self.folder_name + '_parameter.csv'
         print(file_name_parameter)
         with open(file_name_parameter, mode = 'w', newline='') as parameter_file:
             csv_writer = csv.writer(parameter_file, delimiter = '\t', quotechar=' ')
@@ -787,7 +820,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 if i == 0:
                     # create an hdf5-file and write the first reconstructed block into it
                     print(self.path_klick)
-                    with h5py.File(self.path_klick, 'r') as f1, h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'w') as f:
+                    with h5py.File(self.path_klick, 'r') as f1, h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '_reco' + '.h5', 'w') as f:
                         #f.create_dataset("Volume", data=slices_save, chunks = (1,self.hdf_chunking_y.value(),self.hdf_chunking_x.value()), maxshape=(min(slices_save.shape[0],self.spinBox_last.value()-self.spinBox_first.value()), slices_save.shape[1], slices_save.shape[2]))
                         self.hdf_chunking_size_x = math.ceil(slices_save.shape[2]/self.hdf_chunking_x.value())
                         self.hdf_chunking_size_y = math.ceil(slices_save.shape[1]/self.hdf_chunking_y.value())
@@ -801,7 +834,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                     self.progressBar.setValue((i * self.block_size) * 100 / (self.spinBox_last.value() - self.spinBox_first.value()))
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
-                    f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '.h5', 'r+')
+                    f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '_reco' + '.h5', 'r+')
                     vol_proxy_save = f['Volume']
                     vol_proxy_save.resize((vol_proxy_save.shape[0] + slices_save.shape[0]), axis=0)
                     vol_proxy_save[i * self.block_size : i * self.block_size + slices_save.shape[0] ,:,:] = slices_save
