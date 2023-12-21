@@ -445,19 +445,19 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
 
     def get_Tomo_pos(self):
-        self.tomo_pos.setValue(caget('PEGAS:miocb0101005.RBV'))
+        self.tomo_pos.setValue(caget('PEGAS:miocb0102001.RBV'))
 
     def get_Tomo_pos_2(self):
-        self.tomo_pos_2.setValue(caget('PEGAS:miocb0101005.RBV'))
+        self.tomo_pos_2.setValue(caget('PEGAS:miocb0102001.RBV'))
 
     def get_Tomo_pos_3(self):
         self.tomo_pos_3.setValue(caget('PEGAS:miocb0102001.RBV'))
 
     def get_FF_pos(self):
-        self.FF_pos.setValue(caget('PEGAS:miocb0101005.RBV'))
+        self.FF_pos.setValue(caget('PEGAS:miocb0102001.RBV'))
 
     def get_FF_pos_2(self):
-        self.FF_pos_2.setValue(caget('PEGAS:miocb0101005.RBV'))
+        self.FF_pos_2.setValue(caget('PEGAS:miocb0102001.RBV'))
 
     def get_FF_pos_3(self):
         self.FF_pos_3.setValue(caget('PEGAS:miocb0102001.RBV'))
@@ -516,7 +516,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         with open(file_name_csv_list, mode='w', newline='') as csv_file:
             csv_writer = csv.writer(csv_file, delimiter=';', quotechar=' ')  # , quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow(['CT_MICOS_W', 'CT_MICOS_X'])
+            csv_writer.writerow(['SAMPLE_MICOS_W2', 'SAMPLE_MICOS_X'])
             n = 0
             while (n < len(plot_list_pos)):
                 csv_writer.writerow(["{:.4f}".format(plot_list[n]),
@@ -558,7 +558,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
         with open(file_name_csv_list_2, mode='w', newline='') as csv_file_2:
             csv_writer_2 = csv.writer(csv_file_2, delimiter=';', quotechar=' ')  # , quoting=csv.QUOTE_MINIMAL)
-            csv_writer_2.writerow(['CT_MICOS_W', 'CT_MICOS_X'])
+            csv_writer_2.writerow(['SAMPLE_MICOS_W2', 'SAMPLE_MICOS_X'])
             n = 0
             while (n < len(plot_list_pos_2)):
                 csv_writer_2.writerow(["{:.4f}".format(plot_list_2[n]),
@@ -604,7 +604,7 @@ class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
             with open(file_name_csv_list_3 + str(x).zfill(2) + '.csv', mode='w', newline='') as csv_file_3:
                 csv_writer_3 = csv.writer(csv_file_3, delimiter=';', quotechar=' ')  # , quoting=csv.QUOTE_MINIMAL)
-                csv_writer_3.writerow(['6G_SAMPLE_ROLL', 'TOPO_MICOS_X'])
+                csv_writer_3.writerow(['6G_SAMPLE_ROLL', 'SAMPLE_MICOS_X'])
 
                 i = 0
 

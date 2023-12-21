@@ -20,12 +20,11 @@
       <property name="font">
        <font>
         <pointsize>12</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
@@ -49,6 +48,7 @@
            <property name="font">
             <font>
              <pointsize>14</pointsize>
+             <bold>true</bold>
             </font>
            </property>
            <property name="readOnly">
@@ -73,6 +73,7 @@
            <property name="font">
             <font>
              <pointsize>14</pointsize>
+             <bold>true</bold>
             </font>
            </property>
            <property name="readOnly">
@@ -98,6 +99,7 @@
            <property name="font">
             <font>
              <pointsize>14</pointsize>
+             <bold>true</bold>
             </font>
            </property>
            <property name="readOnly">
@@ -108,6 +110,9 @@
            </property>
            <property name="decimals">
             <number>2</number>
+           </property>
+           <property name="maximum">
+            <double>99999.000000000000000</double>
            </property>
           </widget>
          </item>
@@ -227,6 +232,7 @@
            <property name="font">
             <font>
              <pointsize>14</pointsize>
+             <bold>true</bold>
             </font>
            </property>
            <property name="readOnly">
@@ -306,7 +312,7 @@
         <item row="0" column="0">
          <widget class="QLabel" name="label_5">
           <property name="text">
-           <string>CT_MICOS_W</string>
+           <string>SAMPLE_MICOS_W</string>
           </property>
          </widget>
         </item>
@@ -316,7 +322,7 @@
         <item row="2" column="0">
          <widget class="QLabel" name="label_8">
           <property name="text">
-           <string>CT_MICOS_X</string>
+           <string>SAMPLE_MICOS_X</string>
           </property>
          </widget>
         </item>
@@ -334,7 +340,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -354,7 +359,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -374,7 +378,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -400,7 +403,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -414,7 +416,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -437,7 +438,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -451,7 +451,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -471,7 +470,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -488,6 +486,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -500,7 +499,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -523,7 +521,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -540,6 +537,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -552,7 +550,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -581,7 +578,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -602,7 +598,6 @@
            <font>
             <family>Arial Black</family>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <italic>false</italic>
             <bold>true</bold>
             <underline>false</underline>
@@ -628,7 +623,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -649,7 +643,6 @@
            <font>
             <family>Arial Black</family>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -666,7 +659,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <italic>false</italic>
             <bold>true</bold>
             <underline>false</underline>
@@ -689,7 +681,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -720,7 +711,7 @@
         <item row="0" column="0">
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>CT_MICOS_W</string>
+           <string>SAMPLE_MICOS_W</string>
           </property>
          </widget>
         </item>
@@ -730,7 +721,7 @@
         <item row="2" column="0">
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>CT_MICOS_X</string>
+           <string>SAMPLE_MICOS_X</string>
           </property>
          </widget>
         </item>
@@ -742,7 +733,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -774,7 +764,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -846,7 +835,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -872,7 +860,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -895,7 +882,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -912,6 +898,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -931,7 +918,6 @@
            <font>
             <family>Arial Black</family>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -948,7 +934,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -968,7 +953,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -982,7 +966,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1002,7 +985,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1016,7 +998,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1030,7 +1011,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1056,6 +1036,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -1078,7 +1059,6 @@
            <font>
             <family>Arial Black</family>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <italic>false</italic>
             <bold>true</bold>
             <underline>false</underline>
@@ -1104,7 +1084,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1121,6 +1100,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -1133,7 +1113,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1156,7 +1135,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1182,7 +1160,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1196,7 +1173,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <italic>false</italic>
             <bold>true</bold>
             <underline>false</underline>
@@ -1213,7 +1189,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1242,7 +1217,7 @@
         <item row="2" column="0">
          <widget class="QLabel" name="label_9">
           <property name="text">
-           <string>TOPO_MICOS_X</string>
+           <string>SAMPLE_MICOS_X</string>
           </property>
          </widget>
         </item>
@@ -1260,7 +1235,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1286,7 +1260,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1358,7 +1331,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1378,7 +1350,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1404,7 +1375,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1418,7 +1388,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1441,7 +1410,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1455,7 +1423,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1475,7 +1442,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1492,6 +1458,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -1504,7 +1471,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1527,7 +1493,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1544,6 +1509,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -1556,7 +1522,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1579,7 +1544,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1593,7 +1557,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1619,7 +1582,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1640,7 +1602,6 @@
            <font>
             <family>Arial Black</family>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <italic>false</italic>
             <bold>true</bold>
             <underline>false</underline>
@@ -1666,7 +1627,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>50</weight>
             <bold>false</bold>
            </font>
           </property>
@@ -1687,7 +1647,6 @@
            <font>
             <family>Arial Black</family>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -1707,6 +1666,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -1722,7 +1682,6 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
-            <weight>75</weight>
             <italic>false</italic>
             <bold>true</bold>
             <underline>false</underline>
@@ -1746,7 +1705,7 @@
      <x>0</x>
      <y>0</y>
      <width>655</width>
-     <height>18</height>
+     <height>23</height>
     </rect>
    </property>
   </widget>
