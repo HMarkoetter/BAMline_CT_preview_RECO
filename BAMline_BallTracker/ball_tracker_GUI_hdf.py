@@ -45,7 +45,7 @@ def main():
 		while i < len(w_array):
 			print(i)
 			if round(w_array[i]) != 0:  										# notice the last projection at zero degree
-				last_zero_proj = i + 3 - main_Ball_Tracker_Question.HDF_FF1 	# start analysis 3 images after start of rotation
+				last_zero_proj = i + 1 - main_Ball_Tracker_Question.HDF_FF1 	# start analysis 3 images after start of rotation
 				break
 			i = i + 1
 
