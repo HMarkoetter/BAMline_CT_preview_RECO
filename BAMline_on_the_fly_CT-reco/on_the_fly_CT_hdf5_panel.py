@@ -12,6 +12,8 @@ import cv2                                      #to install package with pycharm
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
 import algotom.prep.removal as rem
+import algotom.prep.calculation as calc
+
 
 # On-the-fly-CT Reco
 version =  "Version 2023.07.04 a"
@@ -360,8 +362,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.spinBox_ringradius.value() != 0:
             print('ring handling')
 
-            self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
-
+            #self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
+            self.Norm = rem.remove_all_stripe(self.Norm, snr=3.1, la_size=self.spinBox_ringradius.value(), sm_size=21)
 
             """
             self.proj_sum = numpy.mean(self.Norm, axis = 0)
@@ -485,6 +487,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #extended_sinos[:,0,:] = rem.remove_stripe_based_sorting(extended_sinos[:,0,:], size=21)
         #extended_sinos = algotom.prep.removal.remove_stripe_based_filtering(extended_sinos, sigma=3, size=21)
+        #center = calc.find_center_vo(extended_sinos[:,0,:], extended_sinos.shape[2] // 2 - 50, extended_sinos.shape[2] // 2 + 50)
+        #print('AUTO-CENTER:', center + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size))
+
 
         #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
