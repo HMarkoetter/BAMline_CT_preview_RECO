@@ -24,6 +24,7 @@ Ui_GeneratorWindow, QGeneratorWindow = loadUiType('CT_helper.ui')  # GUI vom Hau
 #print("Let's go")
 
 
+
 class CT_helper(Ui_GeneratorWindow, QGeneratorWindow):
 
     def __init__(self):
