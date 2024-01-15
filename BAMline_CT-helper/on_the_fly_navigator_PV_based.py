@@ -21,15 +21,18 @@ version =  "Version 2023.07.31 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:Navigator'
+channel_name_rec = 'BAMline:NavigatorReco'
+
 #standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
 standard_path = r'C:/delete/reg_data/18_230606_2044_AlTi_F_Ref_tomo___Z25_Y6500_25000eV_10x_400ms'
 
 Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window = loadUiType('on_the_fly_navigator.ui')  # connect to the GUI for the program
 
-plt.ion()
-fig,(ax,ax2) = plt.subplots(2,1)
-imgplotted = ax.imshow(numpy.zeros((1500,640)),vmin=0,vmax=65535)
-angles, = ax2.plot(0,0,'o',color='red', )
+#plt.ion()
+#fig,(ax,ax2) = plt.subplots(2,1)
+#imgplotted = ax.imshow(numpy.zeros((6000,2560)),cmap='gray',vmin=0,vmax=16384)
+#imgplotted = ax.imshow(numpy.zeros((720,2560)),cmap='gray',vmin=0,vmax=65535)
+#angles, = ax2.plot(0,0,'o',color='red', )
 
 
 class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window):
@@ -78,13 +81,17 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.Qchannel_name.setText(channel_name)
         self.pvaServer.start()
 
-        self.fig, self.ax = plt.subplots()
+        self.reco_rec = pva.PvObject(pva_image_dict)
+        self.pvaServer_rec = pva.PvaServer(channel_name_rec, self.reco_rec)
+        self.pvaServer_rec.start()
+
+        #self.fig, self.ax = plt.subplots()
 
         #pvname = "PCOEdge:image1:ArrayData"
         #self.pvname = "PEGAS:miocb0101004.RBV"
         #img_pv = epics.PV(pvname, auto_monitor=True)
 
-        self.omega_pv = epics.PV("PEGAS:miocb0101004.RBV")
+        self.omega_pv = epics.PV("PEGAS:miocb0102002.RBV")
         self.piezo45_pv = epics.PV("micronix:m2.RBV")
         self.piezo135_pv = epics.PV("micronix:m1.RBV")
         self.energy_pv = epics.PV("Energ:25000007rbv")
@@ -92,12 +99,10 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
         self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquireTime_RBV")
         self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
-        self.W_velocity_pv = epics.PV("PEGAS:miocb0101004.VELO")
+        self.W_velocity_pv = epics.PV("PEGAS:miocb0102002.VELO")
 
         self.sizeX_pv = epics.PV("PCOEdge:cam1:SizeX_RBV")
         self.sizeY_pv = epics.PV("PCOEdge:cam1:SizeY_RBV")
-
-
         self.binningx_pv = epics.PV("PCOEdge:cam1:BinX_RBV")
         self.binningy_pv = epics.PV("PCOEdge:cam1:BinY_RBV")
 
@@ -120,6 +125,21 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
         self.image_pv.add_callback(self.update)
+
+        self.pv_rec['dimension'] = [
+            {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
+            {'size': int(self.ringbuffer_size[0]/2), 'fullSize': int(self.ringbuffer_size[0]/2), 'binning': 1}]
+
+        self.ringbuffer = numpy.zeros(self.ringbuffer_size, dtype='H')
+        self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
+
+        self.ringbuffer_exists = 1
+        print('ringbuffer created with size: ', self.ringbuffer.shape)
+
+        self.sino_chopped = numpy.zeros((int(self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
+
+
+
 
 
     def set_path(self):
@@ -150,19 +170,22 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.ringbuffer_exists = 1
         print('ringbuffer created with size: ', self.ringbuffer.shape)
 
+        self.sino_chopped = numpy.zeros(((self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
+
+
+        self.prefill_CORs()
+
     def update(self, **kwargs):
 
-        if self.ringbuffer_exists == 0:
-            self.create_ringbuffer()
 
         print('update function')
         rawimgflat = self.image_pv.get()
         #print(self.image_pv.get())
 
-        print('omega_pv', self.omega_pv.get(),'piezo45_pv', self.piezo45_pv.get(),'piezo135_pv', self.piezo135_pv.get(),'energy_pv', self.energy_pv.get(),'distance_pv', self.distance_pv.get(),'lens_pv', self.lens_pv.get(),'sizeX_pv', self.sizeX_pv.get(),'sizeY_pv', self.sizeY_pv.get())
+        #print('aqp_time_pv', self.aqp_time_pv.get(), 'exp_time_pv', self.exp_time_pv.get(), 'omega_pv', self.omega_pv.get(),'piezo45_pv', self.piezo45_pv.get(),'piezo135_pv', self.piezo135_pv.get(),'energy_pv', self.energy_pv.get(),'distance_pv', self.distance_pv.get(),'lens_pv', self.lens_pv.get(),'sizeX_pv', self.sizeX_pv.get(),'sizeY_pv', self.sizeY_pv.get())
         #self.im_size = (self.sizeX,self.sizeY)
         rawimg2d = numpy.frombuffer(rawimgflat, dtype='H').reshape((self.sizeY,self.sizeX))
-        print(rawimg2d)
+        print(rawimg2d.shape)
 
         #self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimg2d[self.slice_number.value(), : ]
         self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[
@@ -172,15 +195,45 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = float(self.omega_pv.get())
         print('Micos_W Ringbuffer', float(self.omega_pv.get()))
         #, self.ringbuffer_Micos_W)
-
-        if (self.i % 10) == 0:
+        self.progressBar.setValue(self.omega_pv.get())
+        if (self.i % 5) == 0:
             print('FEEDING IMAGE')
             sinogram = self.ringbuffer[:,0,:]
-            imgplotted.set_data(sinogram)
-            angles.set_data(float(self.omega_pv.get()) % 360, self.i)
-            fig.canvas.flush_events()
+            #imgplotted.set_data(sinogram)
+            #angles.set_data(float(self.omega_pv.get()) % 360, self.i)
+            #fig.canvas.flush_events()
+
+            #self.slice_show = sinogram.astype(numpy.float32)
+
+            position = self.i % self.ringbuffer_size[0]
+            print('position', position)
+            if position >= int(self.ringbuffer_size[0]/2):
+                self.sino_chopped[:,0,:] = sinogram[position-int(self.ringbuffer_size[0]/2):position,:]
+            else:
+                self.sino_chopped[-position-1:,0,:] = sinogram[:position+1,:]
+                self.sino_chopped[:int(self.ringbuffer_size[0]/2)-position,0,:] = sinogram[-int(self.ringbuffer_size[0]/2) + position:,:]
+
+            self.sino_chopped = self. sino_chopped.astype(numpy.float32)
+            # write result to pv
+            self.pv_rec['value'] = ({'floatValue': self.sino_chopped.flatten()},)
+
             #plt.imshow(sinogram, cmap='gray')
             #plt.show()
+            print(int(self.ringbuffer_size[0]/2))
+            self.extended_sinos = tomopy.minus_log(self.sino_chopped)
+            options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
+
+            self.slice = tomopy.recon(self.extended_sinos, numpy.linspace(0,math.pi,int(self.ringbuffer_size[0]/2),endpoint=False)+((self.i % self.ringbuffer_size[0])/self.ringbuffer_size[0])*2*math.pi,
+                                      center=float(self.COR_1.value()),
+                                      algorithm=tomopy.astra,
+                                  options=options)
+
+
+
+            self.reco_rec['dimension'] = [
+                {'size': self.slice.shape[1], 'fullSize': self.slice.shape[1], 'binning': 1},
+                {'size': self.slice.shape[2], 'fullSize': self.slice.shape[2], 'binning': 1}]
+            self.reco_rec['value'] = ({'floatValue': self.slice.flatten()},)
 
         print('i', self.i, 'Modulus:', self.i % self.ringbuffer_size[0])
         self.i = self.i +1
@@ -200,7 +253,8 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         #link a volume to the hdf-file
         self.f = h5py.File(self.path_klick, 'r', libver='latest', swmr=True)
         self.vol_proxy = self.f['/entry/data/data']
-        self.line_proxy = self.f['/entry/instrument/NDAttributes/CT_MICOS_W']
+        #self.line_proxy = self.f['/entry/instrument/NDAttributes/CT_MICOS_W']
+        self.line_proxy = self.f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
 
         print('raw data volume size: ', self.vol_proxy.shape)
 
@@ -217,7 +271,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
     def prefill_parameter(self):
         print('function prefill_parameter')
-        self.prefill_slice_number()
+        #self.prefill_slice_number()
         self.get_rotation_angles()
         #self.find_rotation_start()
         self.prefill_CORs()
@@ -293,6 +347,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
     def get_rotation_angles(self):
         #self.f = h5py.File(self.path_klick, 'r',libver='latest', swmr=True)
         #self.line_proxy = self.f['/entry/instrument/NDAttributes/CT_MICOS_W']
+        #self.line_proxy = self.f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
         self.line_proxy.id.refresh()
         self.graph = numpy.array(self.line_proxy)
         print('Function get_rotation_angles: Found number of angles:  ', self.graph.shape[0], '      current angle: ', self.graph[-1])

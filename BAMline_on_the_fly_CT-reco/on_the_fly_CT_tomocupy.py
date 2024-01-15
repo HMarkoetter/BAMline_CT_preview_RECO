@@ -270,8 +270,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_number.setEnabled(True)
 
         #get rotation angles
-        #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
+        self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
         print('self.line_proxy', self.line_proxy)
         self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value()])
         print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
