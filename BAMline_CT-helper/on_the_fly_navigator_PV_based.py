@@ -121,6 +121,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             print('No rotation detected!')
 
+        self.prefill_CORs()
+        self.update_pixel_size()
+
         self.i = 0
 
         self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
@@ -138,6 +141,10 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.sino_chopped = numpy.zeros((int(self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
 
+        self.ruler_grid_line_thickness = 2
+        self.rotation_offset = 45   #still under question
+        self.label_x = 'Piezo 45 [um]'
+        self.label_y = 'Piezo 135 [um]'
 
 
 
@@ -173,7 +180,8 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.sino_chopped = numpy.zeros(((self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
 
 
-        self.prefill_CORs()
+        #self.prefill_CORs()
+        #self.update_pixel_size()
 
     def update(self, **kwargs):
 
@@ -182,7 +190,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         rawimgflat = self.image_pv.get()
         #print(self.image_pv.get())
 
-        #print('aqp_time_pv', self.aqp_time_pv.get(), 'exp_time_pv', self.exp_time_pv.get(), 'omega_pv', self.omega_pv.get(),'piezo45_pv', self.piezo45_pv.get(),'piezo135_pv', self.piezo135_pv.get(),'energy_pv', self.energy_pv.get(),'distance_pv', self.distance_pv.get(),'lens_pv', self.lens_pv.get(),'sizeX_pv', self.sizeX_pv.get(),'sizeY_pv', self.sizeY_pv.get())
+        #print('aqp_time_pv', self.aqp_time_pv.get(), 'exp_time_pv', self.exp_time_pv.get(), 'omega_pv', self.omega_pv.get(),'piezo45_pv', self.piezo45_pv.get(),'piezo135_pv', self.piezo135_pv.get(),'energy_pv', self.energy_pv.get(),'distance_pv', self.distance_pv.get(),'lens_pv', self.lens_pv.get(as_string=True),'sizeX_pv', self.sizeX_pv.get(),'sizeY_pv', self.sizeY_pv.get())
         #self.im_size = (self.sizeX,self.sizeY)
         rawimg2d = numpy.frombuffer(rawimgflat, dtype='H').reshape((self.sizeY,self.sizeX))
         print(rawimg2d.shape)
@@ -196,14 +204,15 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         print('Micos_W Ringbuffer', float(self.omega_pv.get()))
         #, self.ringbuffer_Micos_W)
         self.progressBar.setValue(self.omega_pv.get())
-        if (self.i % 5) == 0:
+        if (self.i % 3) == 0:
             print('FEEDING IMAGE')
             sinogram = self.ringbuffer[:,0,:]
             #imgplotted.set_data(sinogram)
             #angles.set_data(float(self.omega_pv.get()) % 360, self.i)
             #fig.canvas.flush_events()
-
             #self.slice_show = sinogram.astype(numpy.float32)
+
+            self.read_parameter()
 
             position = self.i % self.ringbuffer_size[0]
             print('position', position)
@@ -224,11 +233,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
 
             self.slice = tomopy.recon(self.extended_sinos, numpy.linspace(0,math.pi,int(self.ringbuffer_size[0]/2),endpoint=False)+((self.i % self.ringbuffer_size[0])/self.ringbuffer_size[0])*2*math.pi,
-                                      center=float(self.COR_1.value()),
+                                      center=float(self.COR),
                                       algorithm=tomopy.astra,
                                   options=options)
 
-
+            if self.enable_grid.isChecked() == True:
+                self.add_ruler()
 
             self.reco_rec['dimension'] = [
                 {'size': self.slice.shape[1], 'fullSize': self.slice.shape[1], 'binning': 1},
@@ -258,7 +268,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         print('raw data volume size: ', self.vol_proxy.shape)
 
-        self.prefill_parameter()
+        #self.prefill_parameter()
         #print('try to go to function check_180 ')
         self.check_180()    #this will end in check_auto_update
 
@@ -272,13 +282,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
     def prefill_parameter(self):
         print('function prefill_parameter')
         #self.prefill_slice_number()
-        self.get_rotation_angles()
+        #self.get_rotation_angles()
         #self.find_rotation_start()
-        self.prefill_CORs()
-        self.prefill_pixel_size()
-        self.prefill_binning()
-        self.prefill_energy()
-        self.prefill_distance()
+        #self.prefill_CORs()
+        #self.prefill_pixel_size()
+        #self.prefill_binning()
+        #self.prefill_energy()
+        #self.prefill_distance()
 
 
     def check_180(self):
@@ -317,16 +327,16 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                 QtWidgets.QApplication.processEvents()
 
     def read_parameter(self):
-        self.get_rotation_angles()
-        self.prefill_pixel_size()
-        self.prefill_binning()
-        self.prefill_energy()
-        self.prefill_distance()
+        #self.get_rotation_angles()
+        self.update_pixel_size()
+        #self.prefill_binning()
+        #self.prefill_energy()
+        #self.prefill_distance()
 
 
     def buttons_deactivate_all(self):
-        self.pushLoad.setEnabled(False)
-        self.slice_number.setEnabled(False)
+        #self.pushLoad.setEnabled(False)
+        #self.slice_number.setEnabled(False)
         self.COR_1.setEnabled(False)
         self.COR_2.setEnabled(False)
         self.COR_3.setEnabled(False)
@@ -355,14 +365,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
     def prefill_CORs(self):
         if self.COR_1.value() == 0:
-            self.COR_1.setValue(round(self.vol_proxy.shape[2] / 2))
-            self.COR_2.setValue(round(self.vol_proxy.shape[2] / 2))
-            self.COR_3.setValue(round(self.vol_proxy.shape[2] / 2))
-            self.COR_4.setValue(round(self.vol_proxy.shape[2] / 2))
+            print('preset CORs to half image size')
+            self.COR_1.setValue(round(self.sizeX_pv.get() / 2))
+            self.COR_2.setValue(round(self.sizeX_pv.get() / 2))
+            self.COR_3.setValue(round(self.sizeX_pv.get() / 2))
+            self.COR_4.setValue(round(self.sizeX_pv.get() / 2))
 
     def prefill_pixel_size(self):
-
-
 
         if '/entry/instrument/NDAttributes/CT_Pixelsize' in self.f:
             self.pixel_proxy = self.f['/entry/instrument/NDAttributes/CT_Pixelsize']
@@ -370,6 +379,39 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             #print('Function prefill_pixel_size: ', self.pixel_proxy[-1])
         else:
             self.pixel_size.setValue(1)
+
+    def update_pixel_size(self):
+
+        if self.lens_pv.get() == '2x':
+            self.pixel_size_set = 3.6
+            self.buttons_deactivate_all()
+            self.COR_1.setEnabled(True)
+            self.COR = self.COR_1.value()
+            self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
+        elif self.lens_pv.get() == '5x':
+            self.pixel_size_set = 1.44
+            self.buttons_deactivate_all()
+            self.COR_2.setEnabled(True)
+            self.COR = self.COR_2.value()
+            self.spinBox_ruler_grid = self.spinBox_ruler_grid_2.value()
+        elif self.lens_pv.get() == '10x':
+            self.pixel_size_set = 0.72
+            self.buttons_deactivate_all()
+            self.COR_3.setEnabled(True)
+            self.COR = self.COR_3.value()
+            self.spinBox_ruler_grid = self.spinBox_ruler_grid_3.value()
+        elif self.lens_pv.get() == '20x':
+            self.pixel_size_set = 0.36
+            self.buttons_deactivate_all()
+            self.COR_4.setEnabled(True)
+            self.COR = self.COR_4.value()
+            self.spinBox_ruler_grid = self.spinBox_ruler_grid_4.value()
+        else:
+            self.buttons_deactivate_all()
+
+        print('pixel size: ', self.pixel_size_set)
+        self.pixel_size.setValue(self.pixel_size_set)
+
 
     def prefill_binning(self):
         if '/entry/instrument/NDAttributes/Binning_X' in self.f:
@@ -379,6 +421,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             self.binning.setValue(1)
             print('Function prefill_binning: Not found. Set to 1')
+
+
+
 
 
     def prefill_energy(self):
@@ -425,38 +470,23 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
 
     def add_ruler(self):
-        self.f = h5py.File(self.path_klick, 'r', libver='latest', swmr=True)
-        if '/entry/instrument/NDAttributes/CT_Piezo_X45' in self.f:
-            self.piezo_45_proxy = self.f['/entry/instrument/NDAttributes/CT_Piezo_X45']
-            self.piezo_135_proxy = self.f['/entry/instrument/NDAttributes/CT_Piezo_Y45']
 
+        if self.piezo45_pv.get(as_string=True) == 'None':
+            self.piezo_45_proxy = 0
         else:
-            self.piezo_45_proxy = (0,0)
-            self.piezo_135_proxy = (0,0)
+            self.piezo_45_proxy = self.piezo45_pv.get()
+        print('piezo 45', self.piezo_45_proxy)
 
-        if self.pixel_size.value() != 1:
-            if self.pixel_proxy[-1] == 3.61:
-                self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
-                #print('Pixel Size is: 3.6')
-            elif self.pixel_proxy[-1] == 1.44:
-                self.spinBox_ruler_grid = self.spinBox_ruler_grid_2.value()
-                #print('Pixel Size is: 1.44')
-            elif self.pixel_proxy[-1] == 0.72:
-                self.spinBox_ruler_grid = self.spinBox_ruler_grid_3.value()
-                #print('Pixel Size is: 0.72')
-            elif self.pixel_proxy[-1] == 0.36:
-                self.spinBox_ruler_grid = self.spinBox_ruler_grid_4.value()
-                #print('Pixel Size is: 0.36')
-            else:
-                self.spinBox_ruler_grid = 200
+        if self.piezo135_pv.get(as_string=True) == 'None':
+            self.piezo_135_proxy = 0
         else:
-            self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
-            print('Pixel Size unknown.')
+            self.piezo_135_proxy = self.piezo135_pv.get()
+        print('piezo 135', self.piezo_135_proxy)
 
         self.ruler_grid_color = math.ceil(numpy.max(self.slice))
 
         # draws a circle with the detector size as diameter
-        cv2.circle(self.slice, (round(self.slice.shape[1] / 2), round(self.slice.shape[1] / 2)), round(self.full_size/2), self.ruler_grid_color, self.ruler_grid_line_thickness)
+        cv2.circle(self.slice, (round(self.slice.shape[1] / 2), round(self.slice.shape[1] / 2)), round(self.slice.shape[1]/2), self.ruler_grid_color, self.ruler_grid_line_thickness)
 
         if self.grid_micrometer.isChecked() == True:
 
@@ -472,7 +502,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                            round(self.spinBox_ruler_grid)):
                 cv2.line(self.slice, (round(r / (self.binning.value() * self.pixel_size.value())), 0),
                          (round(r / (self.pixel_size.value() * self.binning.value())), self.slice.shape[0]), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1]/  5) * 5   +   round( r / 5) * 5   -   round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
+                cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy/  5) * 5   +   round( r / 5) * 5   -   round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
                             (round(r / (self.pixel_size.value() * self.binning.value())) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
                             self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
 
@@ -481,7 +511,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                            -round(self.spinBox_ruler_grid)):
                 cv2.line(self.slice, (round(r / (self.pixel_size.value() * self.binning.value())), 0),
                          (round(r / (self.pixel_size.value() * self.binning.value())), self.slice.shape[0]), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy[-1] / 5) * 5  +  round(
+                cv2.putText(self.slice, str(round(1000 * self.piezo_45_proxy / 5) * 5  +  round(
                     r  / 5) * 5  -  round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
                             (round(r / (self.pixel_size.value() * self.binning.value() )) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
                             self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
@@ -498,7 +528,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                            round(self.spinBox_ruler_grid)):
                 cv2.line(self.slice, (0, round(r / (self.pixel_size.value()* self.binning.value()))),
                          (self.slice.shape[1], round(r / (self.pixel_size.value()* self.binning.value()))), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5  +  round(
+                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy / 5) * 5  +  round(
                     r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
                             (20, round(r / (self.pixel_size.value() * self.binning.value())) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
                             self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
@@ -508,11 +538,10 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                            -round(self.spinBox_ruler_grid)):
                 cv2.line(self.slice, (0, round(r / (self.pixel_size.value()* self.binning.value()))),
                          (self.slice.shape[1], round(r / (self.pixel_size.value()* self.binning.value()))), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy[-1] / 5) * 5 + round(
+                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy / 5) * 5 + round(
                     r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
                             (20, round(r / (self.pixel_size.value()* self.binning.value())) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
                             self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-
 
 
         if self.grid_pixel.isChecked() == True:
@@ -551,6 +580,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             for r in range(round(self.slice.shape[1] / 2), 0, -round(self.spinBox_pixel_grid.value())):
                 cv2.line(self.slice, (0, r), (self.slice.shape[1], r), (65535, 65535, 65535), self.ruler_grid_line_thickness)
                 cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (20,r + round(self.ruler_grid_line_thickness/2)*20), cv2.FONT_HERSHEY_SIMPLEX, self.ruler_grid_line_thickness/2, (65535, 65535, 65535), thickness=self.ruler_grid_line_thickness)
+
 
     def reconstruct(self):
         QtWidgets.QApplication.processEvents()
