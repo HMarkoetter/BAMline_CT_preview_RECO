@@ -61,7 +61,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_right.valueChanged.connect(self.update_window_size)
 
 
-        self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
         #self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1
@@ -275,7 +275,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
         self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
         print('self.line_proxy', self.line_proxy)
-        self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value()])
+        self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
         print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
 
         #find rotation start
@@ -346,7 +346,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
         FFmean = numpy.mean(FFs, axis=0)
         print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
-        Sino = self.vol_proxy[self.spinBox_number_FFs.value() : -self.spinBox_number_FFs.value(), self.slice_number.value(), :]
+        Sino = self.vol_proxy[self.spinBox_number_FFs.value() :, self.slice_number.value(), :]
         self.Norm = numpy.divide(numpy.subtract(Sino, self.spinBox_DF.value()), numpy.subtract(FFmean, self.spinBox_DF.value() + self.spinBox_back_illumination.value()))
         #self.Norm = numpy.divide(Sino, FFmean)
         print('Norm shape', self.Norm.shape)
@@ -364,21 +364,21 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             print('ring handling')
 
             #self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
-            self.Norm = rem.remove_all_stripe(self.Norm, snr=3.1, la_size=self.spinBox_ringradius.value(), sm_size=21)
+            #self.Norm = rem.remove_all_stripe(self.Norm, snr=3.1, la_size=self.spinBox_ringradius.value(), sm_size=21) # ONLY 2D????
 
-            """
+
             self.proj_sum = numpy.mean(self.Norm, axis = 0)
             self.proj_sum_2d = numpy.zeros((1, self.proj_sum.shape[0]), dtype = numpy.float32)
             self.proj_sum_2d[0,:] = self.proj_sum
             print('proj_sum dimensions', self.proj_sum.shape)
             print('proj_sum_2d dimensions', self.proj_sum_2d.shape)
-            
+
             proj_sum_filtered = median_filter(self.proj_sum_2d, size = (1,self.spinBox_ringradius.value()), mode='nearest')
             print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
             correction_map = numpy.divide(self.proj_sum_2d, proj_sum_filtered)
             correction_map = numpy.clip(correction_map, 0.5, 2.0)
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
-            
+
             i=0
             while i < self.Norm.shape[0]:
                 self.Norm[i, :] = numpy.divide(self.Norm[i, :], correction_map[0,:])
@@ -386,7 +386,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 QtWidgets.QApplication.processEvents()
                 i = i+1
 
-            """
+
 
             print('Norm.shape', self.Norm.shape)
             print('finished ring handling')
@@ -732,11 +732,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.Norm_vol = numpy.divide(Sino_vol - self.spinBox_DF.value(), FFmean_vol - self.spinBox_DF.value() - self.spinBox_back_illumination.value())
             print('sinogram shape', self.Norm_vol.shape)
 
+
             # Ring artifact handling
             if self.spinBox_ringradius.value() != 0:
+
                 self.proj_sum = numpy.mean(self.Norm_vol, axis=0)
                 print('proj_sum dimensions', self.proj_sum.shape)
-                proj_sum_filtered = median_filter(self.proj_sum, size= self.spinBox_ringradius.value(), mode='nearest')
+                proj_sum_filtered = median_filter(self.proj_sum, size= (1, self.spinBox_ringradius.value()), mode='nearest')
                 print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
                 correction_map_vol = numpy.divide(self.proj_sum, proj_sum_filtered)
                 correction_map_vol = numpy.clip(correction_map_vol, 0.5, 2.0)
@@ -748,6 +750,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                     self.Norm_vol[j, :,:] = numpy.divide(self.Norm_vol[j, :,:], correction_map_vol)
                     j = j + 1
                 print('Norm_vol.shape', self.Norm_vol.shape)
+
+
                 print('finished ring handling')
             else:
                 print('did not do ring handling')

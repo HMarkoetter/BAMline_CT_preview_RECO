@@ -101,10 +101,15 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
         self.W_velocity_pv = epics.PV("PEGAS:miocb0102002.VELO")
 
-        self.sizeX_pv = epics.PV("PCOEdge:cam1:SizeX_RBV")
-        self.sizeY_pv = epics.PV("PCOEdge:cam1:SizeY_RBV")
-        self.binningx_pv = epics.PV("PCOEdge:cam1:BinX_RBV")
-        self.binningy_pv = epics.PV("PCOEdge:cam1:BinY_RBV")
+        #self.sizeX_pv = epics.PV("PCOEdge:cam1:SizeX_RBV")
+        #self.sizeY_pv = epics.PV("PCOEdge:cam1:SizeY_RBV")
+        #self.binningx_pv = epics.PV("PCOEdge:cam1:BinX_RBV")
+        #self.binningy_pv = epics.PV("PCOEdge:cam1:BinY_RBV")
+
+        self.sizeX_pv = epics.PV("PCOEdge:ROI1:SizeX_RBV")
+        self.sizeY_pv = epics.PV("PCOEdge:ROI1:SizeY_RBV")
+        self.binningx_pv = epics.PV("PCOEdge:ROI1:BinX_RBV")
+        self.binningy_pv = epics.PV("PCOEdge:ROI1:BinY_RBV")
 
         self.binningx,self.binningy = self.binningx_pv.get(),self.binningy_pv.get()
 
@@ -127,13 +132,14 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.i = 0
 
         self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
+        #self.image_pv = epics.PV("PCOEdge:Pva1:Image:ArrayData", auto_monitor=True)
         self.image_pv.add_callback(self.update)
 
         self.pv_rec['dimension'] = [
             {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
             {'size': int(self.ringbuffer_size[0]/2), 'fullSize': int(self.ringbuffer_size[0]/2), 'binning': 1}]
 
-        self.ringbuffer = numpy.zeros(self.ringbuffer_size, dtype='H')
+        self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
 
         self.ringbuffer_exists = 1
@@ -171,7 +177,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             self.buttons_activate_load()
 
     def create_ringbuffer(self):
-        self.ringbuffer = numpy.zeros(self.ringbuffer_size, dtype='H')
+        self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
 
         self.ringbuffer_exists = 1
@@ -196,15 +202,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         print(rawimg2d.shape)
 
         #self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimg2d[self.slice_number.value(), : ]
-        self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[
-                                                                  -(round(self.sizeY / 2) + 1) * self.sizeX: -round(
-                                                                      self.sizeY / 2) * self.sizeX]
+        self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[-(round(self.sizeY / 2)) * self.sizeX: -(round(self.sizeY / 2) -1) * self.sizeX]
 
         self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = float(self.omega_pv.get())
         print('Micos_W Ringbuffer', float(self.omega_pv.get()))
         #, self.ringbuffer_Micos_W)
         self.progressBar.setValue(self.omega_pv.get())
-        if (self.i % 3) == 0:
+        if (self.i % 5) == 0:
             print('FEEDING IMAGE')
             sinogram = self.ringbuffer[:,0,:]
             #imgplotted.set_data(sinogram)
