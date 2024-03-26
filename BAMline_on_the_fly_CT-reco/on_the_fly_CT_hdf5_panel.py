@@ -275,12 +275,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
         self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
         print('self.line_proxy', self.line_proxy)
-        self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
+        if self.FF_before_after_checkbox.isChecked():
+            print('FF before after')
+            self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value()])
+        else:
+            self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
         print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
 
         #find rotation start
         i = 0
-        while round(self.graph[i]) < 1:  # notice the last projection at below 1.5°
+        while round(self.graph[i]) < 1:  # notice the last projection at below 0.5°
+            print('angle value :',self.graph[i], 'rounded value',round(self.graph[i]))
             self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
         #print(self.graph[1021:1500])
@@ -346,7 +351,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
         FFmean = numpy.mean(FFs, axis=0)
         print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
-        Sino = self.vol_proxy[self.spinBox_number_FFs.value() :, self.slice_number.value(), :]
+        if self.FF_before_after_checkbox.isChecked():
+            Sino = self.vol_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value(), self.slice_number.value(), :]
+        else:
+            Sino = self.vol_proxy[self.spinBox_number_FFs.value() :, self.slice_number.value(), :]
         self.Norm = numpy.divide(numpy.subtract(Sino, self.spinBox_DF.value()), numpy.subtract(FFmean, self.spinBox_DF.value() + self.spinBox_back_illumination.value()))
         #self.Norm = numpy.divide(Sino, FFmean)
         print('Norm shape', self.Norm.shape)
