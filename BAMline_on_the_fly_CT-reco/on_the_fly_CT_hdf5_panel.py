@@ -16,7 +16,7 @@ import algotom.prep.calculation as calc
 
 
 # On-the-fly-CT Reco
-version =  "Version 2024.06.07 c"
+version =  "Version 2024.06.07 d"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -774,7 +774,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
             # create list with COR-positions
-            center_list = [self.COR.value() + self.COR_roll.value() * i * self.block_size + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (
+            center_list = [self.COR.value() + self.COR_roll.value() * (i + self.spinBox_first.value()) * self.block_size + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (
                 self.number_of_used_projections)
             print(len(center_list))
             print(center_list)
