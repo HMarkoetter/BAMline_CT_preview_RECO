@@ -16,7 +16,7 @@ import algotom.prep.calculation as calc
 
 
 # On-the-fly-CT Reco
-version =  "Version 2024.06.07 a"
+version =  "Version 2024.06.07 b"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
