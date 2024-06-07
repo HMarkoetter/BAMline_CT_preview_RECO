@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>477</width>
-    <height>645</height>
+    <height>670</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -359,7 +359,7 @@ p, li { white-space: pre-wrap; }
           <double>5000.000000000000000</double>
          </property>
          <property name="singleStep">
-          <double>1.000000000000000</double>
+          <double>0.500000000000000</double>
          </property>
          <property name="value">
           <double>0.000000000000000</double>
