@@ -84,7 +84,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         #self.pvname = "PEGAS:miocb0101004.RBV"
         #img_pv = epics.PV(pvname, auto_monitor=True)
 
-        self.omega_pv = epics.PV("PEGAS:miocb0101004.RBV")
+        self.omega_pv = epics.PV("PEGAS:miocb0101004.RBV") # Check for new rotation stage PV!!
         self.piezo45_pv = epics.PV("micronix:m2.RBV")
         self.piezo135_pv = epics.PV("micronix:m1.RBV")
         self.energy_pv = epics.PV("Energ:25000007rbv")

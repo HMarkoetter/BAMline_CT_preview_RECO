@@ -16,7 +16,7 @@ import algotom.prep.calculation as calc
 
 
 # On-the-fly-CT Reco
-version =  "Version 2023.12.22 a"
+version =  "Version 2024.06.07 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -42,6 +42,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_back_illumination.valueChanged.connect(self.check)
         self.spinBox_ringradius.valueChanged.connect(self.check)
         self.COR.valueChanged.connect(self.check)
+        self.COR_roll.valueChanged.connect(self.check)
         self.Offset_Angle.valueChanged.connect(self.check)
         self.speed_W.valueChanged.connect(self.check)
         self.algorithm_list.currentIndexChanged.connect(self.check)
@@ -139,6 +140,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.slice_number.setEnabled(False)
         self.COR.setEnabled(False)
+        self.COR_roll.setEnabled(False)
         self.Offset_Angle.setEnabled(False)
         self.speed_W.setEnabled(False)
         self.pushReconstruct.setEnabled(False)
@@ -174,6 +176,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def buttons_activate_reco(self):
         self.slice_number.setEnabled(True)
         self.COR.setEnabled(True)
+        self.COR_roll.setEnabled(True)
         self.Offset_Angle.setEnabled(True)
         self.speed_W.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
@@ -272,7 +275,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_number.setEnabled(True)
 
         #get rotation angles
-        self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
+        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
         print('self.line_proxy', self.line_proxy)
         self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value()])
         print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
@@ -445,10 +449,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         # create list with x-positions of projections
         if self.comboBox_180_360.currentText() == '360 - axis right':
-            center_list = [self.COR.value() + round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size)] * (self.number_of_used_projections)
+            center_list = [self.COR.value() + self.COR_roll.value() * self.slice_number.value() + round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size)] * (self.number_of_used_projections)
             #center_list = [self.COR.value() +  self.full_size] * (self.number_of_used_projections)
         else:
-            center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
+            center_list = [self.COR.value() + self.COR_roll.value() * self.slice_number.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
 
         # create one sinogram in the form [z, y, x]
         transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.Norm.shape[0]), 1, self.full_size), dtype=float)
@@ -699,6 +703,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             csv_writer.writerow(['Path output                   ', self.path_out_reconstructed_full,' '])
             csv_writer.writerow(['Number of used projections    ', str(self.number_of_used_projections),' '])
             csv_writer.writerow(['Center of rotation            ', str(self.COR.value()), ' '])
+            csv_writer.writerow(['Center of rotation_roll       ', str(self.COR_roll.value()), ' '])
             csv_writer.writerow(['Dark field value              ', str(self.spinBox_DF.value()),' '])
             csv_writer.writerow(['Back illumination value       ', str(self.spinBox_back_illumination.value()),' '])
             csv_writer.writerow(['Ring handling radius          ', str(self.spinBox_ringradius.value()),' '])
@@ -769,10 +774,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             #reconstruct
             if self.algorithm_list.currentText() == 'FBP_CUDA':
                 options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
-                slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra,
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list + self.COR_roll.value() * i * self.block_size, algorithm=tomopy.astra,
                                       options=options)
             else:
-                slices = tomopy.recon(extended_sinos, new_list, center=center_list,
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list + self.COR_roll.value() * i * self.block_size,
                                       algorithm=self.algorithm_list.currentText(),
                                       filter_name=self.filter_list.currentText())
 
