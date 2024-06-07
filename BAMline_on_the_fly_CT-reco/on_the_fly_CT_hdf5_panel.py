@@ -690,9 +690,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
         print(new_list.shape)
 
-        # create list with COR-positions
-        center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
-        print(len(center_list))
+
 
         #save parameters in csv-file
         file_name_parameter = self.path_out_reconstructed_full + self.folder_name + '_parameter.csv'
@@ -775,13 +773,21 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             if self.checkBox_phase_2.isChecked() == True:
                 extended_sinos = tomopy.prep.phase.retrieve_phase(extended_sinos, pixel_size=0.0001, dist=self.doubleSpinBox_distance_2.value(), energy=self.doubleSpinBox_Energy_2.value(), alpha=self.doubleSpinBox_alpha_2.value(), pad=True, ncore=None, nchunk=None)
 
+            # create list with COR-positions
+            center_list = [self.COR.value() + self.COR_roll.value() * i * self.block_size + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (
+                self.number_of_used_projections)
+            print(len(center_list))
+            print(center_list)
+            print('printing')
+
+
             #reconstruct
             if self.algorithm_list.currentText() == 'FBP_CUDA':
                 options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
-                slices = tomopy.recon(extended_sinos, new_list, center=center_list + self.COR_roll.value() * i * self.block_size, algorithm=tomopy.astra,
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra,
                                       options=options)
             else:
-                slices = tomopy.recon(extended_sinos, new_list, center=center_list + self.COR_roll.value() * i * self.block_size,
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list,
                                       algorithm=self.algorithm_list.currentText(),
                                       filter_name=self.filter_list.currentText())
 
