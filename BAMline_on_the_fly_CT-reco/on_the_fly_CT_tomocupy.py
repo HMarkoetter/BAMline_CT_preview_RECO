@@ -12,11 +12,9 @@ import cv2                                      #to install package with pycharm
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
 import algotom.prep.removal as rem
-import algotom.prep.calculation as calc
-
 
 # On-the-fly-CT Reco
-version =  "Version 2024.06.07 b"
+version =  "Version 2023.07.04 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -42,7 +40,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_back_illumination.valueChanged.connect(self.check)
         self.spinBox_ringradius.valueChanged.connect(self.check)
         self.COR.valueChanged.connect(self.check)
-        self.COR_roll.valueChanged.connect(self.check)
         self.Offset_Angle.valueChanged.connect(self.check)
         self.speed_W.valueChanged.connect(self.check)
         self.algorithm_list.currentIndexChanged.connect(self.check)
@@ -62,7 +59,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_right.valueChanged.connect(self.update_window_size)
 
 
-        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         #self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1
@@ -140,7 +137,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         self.slice_number.setEnabled(False)
         self.COR.setEnabled(False)
-        self.COR_roll.setEnabled(False)
         self.Offset_Angle.setEnabled(False)
         self.speed_W.setEnabled(False)
         self.pushReconstruct.setEnabled(False)
@@ -176,7 +172,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def buttons_activate_reco(self):
         self.slice_number.setEnabled(True)
         self.COR.setEnabled(True)
-        self.COR_roll.setEnabled(True)
         self.Offset_Angle.setEnabled(True)
         self.speed_W.setEnabled(True)
         self.pushReconstruct.setEnabled(True)
@@ -275,10 +270,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.slice_number.setEnabled(True)
 
         #get rotation angles
-        #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
+        self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
         print('self.line_proxy', self.line_proxy)
-        self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
+        self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value()])
         print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
 
         #find rotation start
@@ -349,7 +343,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
         FFmean = numpy.mean(FFs, axis=0)
         print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
-        Sino = self.vol_proxy[self.spinBox_number_FFs.value() :, self.slice_number.value(), :]
+        Sino = self.vol_proxy[self.spinBox_number_FFs.value() : -self.spinBox_number_FFs.value(), self.slice_number.value(), :]
         self.Norm = numpy.divide(numpy.subtract(Sino, self.spinBox_DF.value()), numpy.subtract(FFmean, self.spinBox_DF.value() + self.spinBox_back_illumination.value()))
         #self.Norm = numpy.divide(Sino, FFmean)
         print('Norm shape', self.Norm.shape)
@@ -366,22 +360,22 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.spinBox_ringradius.value() != 0:
             print('ring handling')
 
-            #self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
-            #self.Norm = rem.remove_all_stripe(self.Norm, snr=3.1, la_size=self.spinBox_ringradius.value(), sm_size=21) # ONLY 2D????
+            self.Norm = rem.remove_stripe_based_sorting(self.Norm, size=self.spinBox_ringradius.value())
 
 
+            """
             self.proj_sum = numpy.mean(self.Norm, axis = 0)
             self.proj_sum_2d = numpy.zeros((1, self.proj_sum.shape[0]), dtype = numpy.float32)
             self.proj_sum_2d[0,:] = self.proj_sum
             print('proj_sum dimensions', self.proj_sum.shape)
             print('proj_sum_2d dimensions', self.proj_sum_2d.shape)
-
+            
             proj_sum_filtered = median_filter(self.proj_sum_2d, size = (1,self.spinBox_ringradius.value()), mode='nearest')
             print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
             correction_map = numpy.divide(self.proj_sum_2d, proj_sum_filtered)
             correction_map = numpy.clip(correction_map, 0.5, 2.0)
             print('correction_map dimensions', correction_map.shape, 'correction_map min vs max', numpy.amin(correction_map), numpy.amax(correction_map))
-
+            
             i=0
             while i < self.Norm.shape[0]:
                 self.Norm[i, :] = numpy.divide(self.Norm[i, :], correction_map[0,:])
@@ -389,7 +383,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 QtWidgets.QApplication.processEvents()
                 i = i+1
 
-
+            """
 
             print('Norm.shape', self.Norm.shape)
             print('finished ring handling')
@@ -449,10 +443,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         # create list with x-positions of projections
         if self.comboBox_180_360.currentText() == '360 - axis right':
-            center_list = [self.COR.value() + self.COR_roll.value() * self.slice_number.value() + round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size)] * (self.number_of_used_projections)
+            center_list = [self.COR.value() + round((self.extend_FOV_fixed_ImageJ_Stream -1) * self.full_size)] * (self.number_of_used_projections)
             #center_list = [self.COR.value() +  self.full_size] * (self.number_of_used_projections)
         else:
-            center_list = [self.COR.value() + self.COR_roll.value() * self.slice_number.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
+            center_list = [self.COR.value() + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
 
         # create one sinogram in the form [z, y, x]
         transposed_sinos = numpy.zeros((min(self.number_of_used_projections, self.Norm.shape[0]), 1, self.full_size), dtype=float)
@@ -491,9 +485,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #extended_sinos[:,0,:] = rem.remove_stripe_based_sorting(extended_sinos[:,0,:], size=21)
         #extended_sinos = algotom.prep.removal.remove_stripe_based_filtering(extended_sinos, sigma=3, size=21)
-        #center = calc.find_center_vo(extended_sinos[:,0,:], extended_sinos.shape[2] // 2 - 50, extended_sinos.shape[2] // 2 + 50)
-        #print('AUTO-CENTER:', center + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size))
-
 
         #reconstruct one slice
         if self.algorithm_list.currentText() == 'FBP_CUDA':
@@ -703,7 +694,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             csv_writer.writerow(['Path output                   ', self.path_out_reconstructed_full,' '])
             csv_writer.writerow(['Number of used projections    ', str(self.number_of_used_projections),' '])
             csv_writer.writerow(['Center of rotation            ', str(self.COR.value()), ' '])
-            csv_writer.writerow(['Center of rotation_roll       ', str(self.COR_roll.value()), ' '])
             csv_writer.writerow(['Dark field value              ', str(self.spinBox_DF.value()),' '])
             csv_writer.writerow(['Back illumination value       ', str(self.spinBox_back_illumination.value()),' '])
             csv_writer.writerow(['Ring handling radius          ', str(self.spinBox_ringradius.value()),' '])
@@ -736,13 +726,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.Norm_vol = numpy.divide(Sino_vol - self.spinBox_DF.value(), FFmean_vol - self.spinBox_DF.value() - self.spinBox_back_illumination.value())
             print('sinogram shape', self.Norm_vol.shape)
 
-
             # Ring artifact handling
             if self.spinBox_ringradius.value() != 0:
-
                 self.proj_sum = numpy.mean(self.Norm_vol, axis=0)
                 print('proj_sum dimensions', self.proj_sum.shape)
-                proj_sum_filtered = median_filter(self.proj_sum, size= (1, self.spinBox_ringradius.value()), mode='nearest')
+                proj_sum_filtered = median_filter(self.proj_sum, size= self.spinBox_ringradius.value(), mode='nearest')
                 print('proj_sum_filtered dimensions', proj_sum_filtered.shape)
                 correction_map_vol = numpy.divide(self.proj_sum, proj_sum_filtered)
                 correction_map_vol = numpy.clip(correction_map_vol, 0.5, 2.0)
@@ -754,8 +742,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                     self.Norm_vol[j, :,:] = numpy.divide(self.Norm_vol[j, :,:], correction_map_vol)
                     j = j + 1
                 print('Norm_vol.shape', self.Norm_vol.shape)
-
-
                 print('finished ring handling')
             else:
                 print('did not do ring handling')
@@ -778,10 +764,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             #reconstruct
             if self.algorithm_list.currentText() == 'FBP_CUDA':
                 options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
-                slices = tomopy.recon(extended_sinos, new_list, center=center_list + self.COR_roll.value() * i * self.block_size, algorithm=tomopy.astra,
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra,
                                       options=options)
             else:
-                slices = tomopy.recon(extended_sinos, new_list, center=center_list + self.COR_roll.value() * i * self.block_size,
+                slices = tomopy.recon(extended_sinos, new_list, center=center_list,
                                       algorithm=self.algorithm_list.currentText(),
                                       filter_name=self.filter_list.currentText())
 

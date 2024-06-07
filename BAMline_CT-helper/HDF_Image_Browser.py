@@ -6,8 +6,8 @@ from PyQt5.uic import loadUiType
 from pathlib import Path
 import numpy as np
 
-#standard_path = r'A:\BAMline-CT'
-standard_path = r'\\gfs01\g31\FB85-MeasuredData\BAMline-CT\2022\2022_03\flat_cathode\220317_1629_92_flat_cathode_____Z25_Y7400_30000eV_10x_250ms'
+standard_path = r'\raid-ssd\CT'
+#standard_path = r'\\gfs01\g31\FB85-MeasuredData\BAMline-CT\2022\2022_03\flat_cathode\220317_1629_92_flat_cathode_____Z25_Y7400_30000eV_10x_250ms'
 
 
 Ui_HDF_Browser_Window, Q_HDF_Browser_Window = loadUiType('HDF_Image_Browser.ui')  # connect to the GUI for the program
@@ -29,7 +29,7 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.radioButton_Y.toggled.connect(self.update)
         self.radioButton_Z.toggled.connect(self.update)
         self.Qchannel_name.returnPressed.connect(self.updatepva)
-
+        self.setAcceptDrops(True)
 
         self.pva_image_dict = {'value': ({'booleanValue': [pva.pvaccess.ScalarType.BOOLEAN], 'byteValue':
             [pva.pvaccess.ScalarType.BYTE], 'shortValue': [pva.pvaccess.ScalarType.SHORT], 'intValue':
@@ -68,6 +68,29 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.pvaServer_HDF_Image_Browser = pva.PvaServer(self.Qchannel_name.text(), self.image)
         self.pvaServer_HDF_Image_Browser.start()
         print(self.pvaServer_HDF_Image_Browser.getRecordNames())
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        file_path = event.mimeData().urls()[0].toLocalFile()
+        print(file_path)
+        self.set_path(file_path)
+
+    def load_clicked(self):
+        # ask for hdf5-file
+        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.',
+                                                           standard_path)  # put NameS for multiple files
+
+        if path_klick[0] == '':
+            print('return')
+            self.buttons_activate_all()
+            return
+
+        self.set_path(path_klick[0])
 
     def updatepva(self):
         self.pvaServer_HDF_Image_Browser.removeAllRecords()
@@ -153,22 +176,13 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         for item in self.f.items():
             recursivePopulateTree(topnode, item)
 
-    def set_path(self):
+    def set_path(self,path_klick):
+        self.path_klick = path_klick
         # grey out the buttons while program is busy
         self.buttons_deactivate_all()
         path_klick = ''
 
-        # ask for hdf5-file
-        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.',
-                                                           standard_path)  # put NameS for multiple files
 
-        if path_klick[0] == '':
-            print('return')
-            self.buttons_activate_all()
-            return
-
-
-        self.path_klick = path_klick[0]
         print('path klicked: ', self.path_klick)
         # analyse and cut the path in pieces
         print('chopped path: ', *Path(self.path_klick).parts,

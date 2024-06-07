@@ -38,7 +38,7 @@ def main():
 	# checking start of rotation
 	with h5py.File(path_klick, 'r') as hdf:
 		entry = hdf.get('entry')
-		w_data = entry.get('/entry/instrument/NDAttributes/CT_MICOS_W')
+		w_data = entry.get('/entry/instrument/NDAttributes/SAMPLE_MICOS_W2')
 		w_array = numpy.array(w_data)
 		print(w_array)
 		i = main_Ball_Tracker_Question.HDF_FF1
