@@ -16,7 +16,7 @@ import algotom.prep.calculation as calc
 
 
 # On-the-fly-CT Reco
-version =  "Version 2024.06.07 d"
+version = "Version 2024.06.07 d"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -26,6 +26,7 @@ standard_path = r'C:/delete/reg_data/18_230606_2044_AlTi_F_Ref_tomo___Z25_Y6500_
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_dock_widget.ui')  # connect to the GUI for the program
 
 class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
+
 
 
     def __init__(self):
@@ -62,8 +63,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_right.valueChanged.connect(self.update_window_size)
 
 
-        self.block_size = 16        #volume will be reconstructed blockwise to reduce needed RAM
-        #self.extend_FOV = 0.25      #the reconstructed area will be enlarged in order to allow off axis scans
+        self.block_size = 96        #volume will be reconstructed blockwise to reduce needed RAM
+        self.extend_FOV = 0.15      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1
 
@@ -219,7 +220,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.pushReconstruct.setText('Busy')
         self.pushReconstruct_all.setText('Busy\n')
         self.new = 1
-        self.extend_FOV_fixed_ImageJ_Stream = 0.05
+        self.extend_FOV_fixed_ImageJ_Stream = 0.15
 
         #ask for hdf5-file
         path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
@@ -276,10 +277,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #get rotation angles
         #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_HUBER_W']
+        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
         print('self.line_proxy', self.line_proxy)
         if self.FF_before_after_checkbox.isChecked():
-            print('FF before after')
+            print('---------------------FF before after--------------------------------')
             self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value()])
         else:
             self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
@@ -288,7 +292,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #find rotation start
         i = 0
         while round(self.graph[i]) < 1:  # notice the last projection at below 0.5°
-            print('angle value :',self.graph[i], 'rounded value',round(self.graph[i]))
             self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
             i = i + 1
         #print(self.graph[1021:1500])
@@ -351,10 +354,14 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def load(self):
         self.buttons_deactivate_all()
 
-        FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
+        #FF before
+        # FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
+        #FF after
+        FFs = self.vol_proxy[-(self.spinBox_number_FFs.value() - 1):, self.slice_number.value(), :]
         FFmean = numpy.mean(FFs, axis=0)
         print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
         if self.FF_before_after_checkbox.isChecked():
+            print('Flat-fields before and after')
             Sino = self.vol_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value(), self.slice_number.value(), :]
         else:
             Sino = self.vol_proxy[self.spinBox_number_FFs.value() :, self.slice_number.value(), :]
@@ -410,7 +417,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #prefill rotation-speed[°/img]
         #Polynom fit for the angles, changed /4 to /2 and 3/4 to 7/8
-        poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /2) : round((self.w.shape[0] + 1) * 7/8) ])), self.w[round((self.w.shape[0] + 1) /2) : round((self.w.shape[0] + 1) * 7/8) ], 1, rcond=None, full=False, w=None, cov=False)
+        poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 7/8) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 7/8) ], 1, rcond=None, full=False, w=None, cov=False)
         print('Polynom coefficients',poly_coeff, '   Detected angular step per image: ', poly_coeff[0])
         self.speed_W.setValue(poly_coeff[0])
         print('Last projection at 0 degree/still speeding up: image number', self.last_zero_proj)
@@ -726,6 +733,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             csv_writer.writerow(['Reconstruction filter         ', self.filter_list.currentText(), ' '])
             csv_writer.writerow(['Software Version              ', version, ' '])
             csv_writer.writerow(['binning                       ', '1x1x1', ' '])
+
 
 
         #divide volume into blocks and reconstruct them one by one in order to save RAM

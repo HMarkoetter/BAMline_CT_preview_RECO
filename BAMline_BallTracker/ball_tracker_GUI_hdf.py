@@ -38,7 +38,9 @@ def main():
 	# checking start of rotation
 	with h5py.File(path_klick, 'r') as hdf:
 		entry = hdf.get('entry')
-		w_data = entry.get('/entry/instrument/NDAttributes/SAMPLE_MICOS_W2')
+		w_data = entry.get('/entry/instrument/NDAttributes/SAMPLE_MICOS_W1')
+		#w_data = entry.get('/entry/instrument/NDAttributes/SAMPLE_MICOS_W2')
+		#w_data = entry.get('/entry/instrument/NDAttributes/SAMPLE_HUBER_W')
 		w_array = numpy.array(w_data)
 		print(w_array)
 		i = main_Ball_Tracker_Question.HDF_FF1
@@ -58,7 +60,7 @@ def main():
 		numberFFs = main_Ball_Tracker_Question.numberFFs
 
 		Threshold = main_Ball_Tracker_Question.Threshold
-		Binning = main_Ball_Tracker_Question.Binning     # or 2, whatever
+		Binning = main_Ball_Tracker_Question.Binning     # 1 or 2, whatever
 		skip = main_Ball_Tracker_Question.skip
 		print('Binning: ', Binning)
 
@@ -180,6 +182,7 @@ def main():
 	seq.cropBorder(top=main_Ball_Tracker_Question.CropTop, bottom=main_Ball_Tracker_Question.CropBottom, left=main_Ball_Tracker_Question.CropLeft, right=main_Ball_Tracker_Question.CropRight)
 	#seq.crop(x0=100, y0=1000, x1=5000, y1=2000)    # Crop overrides border crop, if defined.
 
+	#seq.autoCrop(doAutoCrop=True, autoCropSize=400, autoCropBinningFactor=40)
 	seq.autoCrop(doAutoCrop=True, autoCropSize=600, autoCropBinningFactor=40)
 
 	# Cropping the ball afterwards, mostly to produce an animation:
