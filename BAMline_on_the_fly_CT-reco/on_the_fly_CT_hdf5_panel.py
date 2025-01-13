@@ -16,7 +16,7 @@ import algotom.prep.calculation as calc
 
 
 # On-the-fly-CT Reco
-version = "Version 2024.06.07 d"
+version = "Version 2024.12.17 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:CTReco'
@@ -277,10 +277,10 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #get rotation angles
         #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
+        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
         #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
         #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_HUBER_W']
-        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
         print('self.line_proxy', self.line_proxy)
         if self.FF_before_after_checkbox.isChecked():
             print('---------------------FF before after--------------------------------')
@@ -355,16 +355,28 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.buttons_deactivate_all()
 
         #FF before
-        # FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() -1, self.slice_number.value(), :]
+
         #FF after
-        FFs = self.vol_proxy[-(self.spinBox_number_FFs.value() - 1):, self.slice_number.value(), :]
-        FFmean = numpy.mean(FFs, axis=0)
-        print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
+
+
         if self.FF_before_after_checkbox.isChecked():
+            FFs1 = self.vol_proxy[-(self.spinBox_number_FFs.value() - 1): , self.slice_number.value(), :]
+            FFs2 = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, self.slice_number.value(), :]
+            FFmean1 = numpy.mean(FFs1, axis=0)
+            FFmean2 = numpy.mean(FFs2, axis=0)
+            FFmean = (FFmean1+FFmean2)/2
+            print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
             print('Flat-fields before and after')
             Sino = self.vol_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value(), self.slice_number.value(), :]
+
+
         else:
+            FFs = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, self.slice_number.value(), :]
+            FFmean = numpy.mean(FFs, axis=0)
+            print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
             Sino = self.vol_proxy[self.spinBox_number_FFs.value() :, self.slice_number.value(), :]
+
+        print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean.shape)
         self.Norm = numpy.divide(numpy.subtract(Sino, self.spinBox_DF.value()), numpy.subtract(FFmean, self.spinBox_DF.value() + self.spinBox_back_illumination.value()))
         #self.Norm = numpy.divide(Sino, FFmean)
         print('Norm shape', self.Norm.shape)
