@@ -1,3 +1,5 @@
+import multiprocessing
+multiprocessing.freeze_support()
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
@@ -11,23 +13,22 @@ import csv
 import cv2                                      #to install package with pycharm by finding "opencv-python"
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
-import algotom.prep.removal as rem
-import algotom.prep.calculation as calc
+#import algotom.prep.removal as rem
+#import algotom.prep.calculation as calc
 
 
 # On-the-fly-CT Reco
 version = "Version 2024.12.17 a"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
-channel_name = 'BAMline:CTReco'
+channel_name = 'BAMline:CTReco_H'
 #standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
+
 standard_path = r'C:/delete/reg_data/18_230606_2044_AlTi_F_Ref_tomo___Z25_Y6500_25000eV_10x_400ms'
 
 Ui_on_the_fly_Window, Q_on_the_fly_Window = loadUiType('on_the_fly_CT_reco_hdf_dock_widget.ui')  # connect to the GUI for the program
 
 class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
-
-
 
     def __init__(self):
         super(On_the_fly_CT_tester, self).__init__()
@@ -62,8 +63,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_left.valueChanged.connect(self.update_window_size)
         self.spinBox_right.valueChanged.connect(self.update_window_size)
 
-
-        self.block_size = 96        #volume will be reconstructed blockwise to reduce needed RAM
+        self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.15      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         #self.new = 1
@@ -277,10 +277,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #get rotation angles
         #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
         #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
         #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_HUBER_W']
         #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
+        angles_destination = '/entry/instrument/NDAttributes/' + str(self.angle_directory_combobox.currentText())
+        print('Angles path : ', angles_destination)
+        self.line_proxy = f[angles_destination]
         print('self.line_proxy', self.line_proxy)
         if self.FF_before_after_checkbox.isChecked():
             print('---------------------FF before after--------------------------------')
@@ -291,9 +294,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         #find rotation start
         i = 0
-        while round(self.graph[i]) < 1:  # notice the last projection at below 0.5°
-            self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
-            i = i + 1
+        try:
+            while round(self.graph[i]) < 1:  # notice the last projection at below 0.5°
+                self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
+                i = i + 1
+        except(IndexError):
+            print('Could not find last zero projection : try another angles path or if the scan is a radiography ?')
+            self.buttons_activate_load()
+            self.buttons_activate_reco()
+            self.buttons_activate_crop_volume()
+            self.buttons_activate_reco_all()
+            return None
         #print(self.graph[1021:1500])
         print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
 
