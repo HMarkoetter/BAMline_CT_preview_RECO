@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>477</width>
-    <height>670</height>
+    <width>732</width>
+    <height>917</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,8 +21,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>477</width>
-     <height>22</height>
+     <width>732</width>
+     <height>23</height>
     </rect>
    </property>
   </widget>
@@ -36,56 +36,26 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_2">
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_2">
+     <item row="6" column="1">
+      <widget class="QSpinBox" name="spinBox_DF">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="text">
-        <string>number of FFs before</string>
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Subtracts this value from both, projection and flat field, before dividing them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="maximum">
+        <number>65535</number>
+       </property>
+       <property name="value">
+        <number>100</number>
        </property>
       </widget>
      </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="label_13">
-       <property name="text">
-        <string>back illumination</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="2">
-      <widget class="QComboBox" name="comboBox_180_360">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <item>
-        <property name="text">
-         <string>180 - axis centered</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>360 - axis left</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>360 - axis right</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="8" column="0">
-      <widget class="QLabel" name="label_14">
-       <property name="text">
-        <string>pixel size</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="2">
+     <item row="7" column="1">
       <widget class="QSpinBox" name="spinBox_back_illumination">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -101,30 +71,43 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="2">
-      <widget class="QSpinBox" name="spinBox_number_FFs">
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>number of FFs before</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0" colspan="2">
+      <widget class="QProgressBar" name="progressBar">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="maximum">
-        <number>5000</number>
-       </property>
        <property name="value">
-        <number>20</number>
+        <number>0</number>
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_18">
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="manual_selection_checkbox">
        <property name="text">
-        <string>scan type</string>
+        <string>Manual</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="0" colspan="3">
+     <item row="1" column="0" colspan="2">
       <layout class="QGridLayout" name="gridLayout_4">
        <item row="0" column="0">
         <widget class="QLabel" name="label_17">
@@ -146,10 +129,13 @@
          </property>
          <property name="html">
           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:7.8pt;&quot;&gt;channel name&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Noto Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'MS Shell Dlg 2'; font-size:7.8pt;&quot;&gt;channel name&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
         </widget>
        </item>
@@ -199,57 +185,10 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </item>
-     <item row="8" column="2">
-      <widget class="QDoubleSpinBox" name="pixel_size">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-       <property name="value">
-        <double>0.720000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="2">
-      <widget class="QSpinBox" name="spinBox_DF">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Subtracts this value from both, projection and flat field, before dividing them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="maximum">
-        <number>65535</number>
-       </property>
-       <property name="value">
-        <number>100</number>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0" colspan="3">
-      <widget class="QProgressBar" name="progressBar">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="value">
-        <number>0</number>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>pixel size</string>
        </property>
       </widget>
      </item>
@@ -269,11 +208,113 @@ p, li { white-space: pre-wrap; }
        </property>
       </widget>
      </item>
+     <item row="4" column="1">
+      <widget class="QSpinBox" name="spinBox_number_FFs">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximum">
+        <number>5000</number>
+       </property>
+       <property name="value">
+        <number>20</number>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QDoubleSpinBox" name="pixel_size">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+       <property name="value">
+        <double>0.720000000000000</double>
+       </property>
+      </widget>
+     </item>
      <item row="5" column="0">
       <widget class="QCheckBox" name="FF_before_after_checkbox">
        <property name="text">
         <string>FF before and after</string>
        </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>back illumination</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="comboBox_180_360">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <item>
+        <property name="text">
+         <string>180 - axis centered</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>360 - axis left</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>360 - axis right</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string>scan type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_25">
+       <property name="text">
+        <string>Angles path</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="angle_directory_combobox">
+       <item>
+        <property name="text">
+         <string>SAMPLE_MICOS_W1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>SAMPLE_MICOS_W2</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>SAMPLE_W</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>SAMPLE_HUBER_W</string>
+        </property>
+       </item>
       </widget>
      </item>
     </layout>
@@ -307,7 +348,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -330,7 +370,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -358,7 +397,6 @@ p, li { white-space: pre-wrap; }
          </property>
          <property name="font">
           <font>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -420,7 +458,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -462,7 +499,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -498,7 +534,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -541,7 +576,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -598,7 +632,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -699,7 +732,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>14</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -805,7 +837,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -828,7 +859,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -851,7 +881,6 @@ p, li { white-space: pre-wrap; }
          <property name="font">
           <font>
            <pointsize>8</pointsize>
-           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -879,7 +908,6 @@ p, li { white-space: pre-wrap; }
        <property name="font">
         <font>
          <pointsize>8</pointsize>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -902,7 +930,6 @@ p, li { white-space: pre-wrap; }
        <property name="font">
         <font>
          <pointsize>8</pointsize>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -931,7 +958,6 @@ p, li { white-space: pre-wrap; }
        <property name="font">
         <font>
          <pointsize>8</pointsize>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -954,7 +980,6 @@ p, li { white-space: pre-wrap; }
        <property name="font">
         <font>
          <pointsize>8</pointsize>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -1187,8 +1212,8 @@ p, li { white-space: pre-wrap; }
   <widget class="QDockWidget" name="Crop">
    <property name="minimumSize">
     <size>
-     <width>205</width>
-     <height>173</height>
+     <width>235</width>
+     <height>207</height>
     </size>
    </property>
    <property name="floating">
