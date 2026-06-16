@@ -17,7 +17,10 @@ import matplotlib.pyplot as plt
 
 
 # On-the-fly Navigator
-version =  "Version 2023.07.31 a"
+version =  "Version 2026.16.06"
+
+# EPICS environment variables for BAMline
+os.environ["EPICS_CA_ADDR_LIST"] = "172.31.20.131 172.31.20.231 172.31.20.145"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:Navigator'
@@ -54,27 +57,27 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
         #pva_image_data = self.pva_structure.get('')
         #pva_image_dict = pva_image_data.getStructureDict()
-        pva_image_dict = {'value': ({'booleanValue': [pva.pvaccess.ScalarType.BOOLEAN], 'byteValue':
-            [pva.pvaccess.ScalarType.BYTE], 'shortValue': [pva.pvaccess.ScalarType.SHORT], 'intValue':
-            [pva.pvaccess.ScalarType.INT], 'longValue': [pva.pvaccess.ScalarType.LONG], 'ubyteValue':
-            [pva.pvaccess.ScalarType.UBYTE], 'ushortValue': [pva.pvaccess.ScalarType.USHORT], 'uintValue':
-            [pva.pvaccess.ScalarType.UINT], 'ulongValue': [pva.pvaccess.ScalarType.ULONG], 'floatValue':
-            [pva.pvaccess.ScalarType.FLOAT], 'doubleValue': [pva.pvaccess.ScalarType.DOUBLE]},), 'codec':
-            {'name': pva.pvaccess.ScalarType.STRING, 'parameters': ()}, 'compressedSize':
-            pva.pvaccess.ScalarType.LONG, 'uncompressedSize': pva.pvaccess.ScalarType.LONG, 'dimension':
-            [{'size': pva.pvaccess.ScalarType.INT, 'offset': pva.pvaccess.ScalarType.INT, 'fullSize':
-                pva.pvaccess.ScalarType.INT, 'binning': pva.pvaccess.ScalarType.INT, 'reverse':
-                pva.pvaccess.ScalarType.BOOLEAN}], 'uniqueId': pva.pvaccess.ScalarType.INT, 'dataTimeStamp':
-            {'secondsPastEpoch': pva.pvaccess.ScalarType.LONG, 'nanoseconds': pva.pvaccess.ScalarType.INT,
-             'userTag': pva.pvaccess.ScalarType.INT}, 'attribute':
-            [{'name': pva.pvaccess.ScalarType.STRING, 'value': (), 'descriptor': pva.pvaccess.ScalarType.STRING,
-              'sourceType': pva.pvaccess.ScalarType.INT, 'source': pva.pvaccess.ScalarType.STRING}], 'descriptor':
-            pva.pvaccess.ScalarType.STRING, 'alarm': {'severity': pva.pvaccess.ScalarType.INT, 'status':
-            pva.pvaccess.ScalarType.INT, 'message': pva.pvaccess.ScalarType.STRING}, 'timeStamp':
-            {'secondsPastEpoch': pva.pvaccess.ScalarType.LONG, 'nanoseconds': pva.pvaccess.ScalarType.INT, 'userTag':
-                pva.pvaccess.ScalarType.INT}, 'display': {'limitLow': pva.pvaccess.ScalarType.DOUBLE, 'limitHigh':
-            pva.pvaccess.ScalarType.DOUBLE, 'description': pva.pvaccess.ScalarType.STRING, 'format':
-            pva.pvaccess.ScalarType.STRING, 'units': pva.pvaccess.ScalarType.STRING}}
+        pva_image_dict = {'value': ({'booleanValue': [pva.ScalarType.BOOLEAN], 'byteValue':
+            [pva.ScalarType.BYTE], 'shortValue': [pva.ScalarType.SHORT], 'intValue':
+            [pva.ScalarType.INT], 'longValue': [pva.ScalarType.LONG], 'ubyteValue':
+            [pva.ScalarType.UBYTE], 'ushortValue': [pva.ScalarType.USHORT], 'uintValue':
+            [pva.ScalarType.UINT], 'ulongValue': [pva.ScalarType.ULONG], 'floatValue':
+            [pva.ScalarType.FLOAT], 'doubleValue': [pva.ScalarType.DOUBLE]},), 'codec':
+            {'name': pva.ScalarType.STRING, 'parameters': ()}, 'compressedSize':
+            pva.ScalarType.LONG, 'uncompressedSize': pva.ScalarType.LONG, 'dimension':
+            [{'size': pva.ScalarType.INT, 'offset': pva.ScalarType.INT, 'fullSize':
+                pva.ScalarType.INT, 'binning': pva.ScalarType.INT, 'reverse':
+                pva.ScalarType.BOOLEAN}], 'uniqueId': pva.ScalarType.INT, 'dataTimeStamp':
+            {'secondsPastEpoch': pva.ScalarType.LONG, 'nanoseconds': pva.ScalarType.INT,
+             'userTag': pva.ScalarType.INT}, 'attribute':
+            [{'name': pva.ScalarType.STRING, 'value': (), 'descriptor': pva.ScalarType.STRING,
+              'sourceType': pva.ScalarType.INT, 'source': pva.ScalarType.STRING}], 'descriptor':
+            pva.ScalarType.STRING, 'alarm': {'severity': pva.ScalarType.INT, 'status':
+            pva.ScalarType.INT, 'message': pva.ScalarType.STRING}, 'timeStamp':
+            {'secondsPastEpoch': pva.ScalarType.LONG, 'nanoseconds': pva.ScalarType.INT, 'userTag':
+                pva.ScalarType.INT}, 'display': {'limitLow': pva.ScalarType.DOUBLE, 'limitHigh':
+            pva.ScalarType.DOUBLE, 'description': pva.ScalarType.STRING, 'format':
+            pva.ScalarType.STRING, 'units': pva.ScalarType.STRING}}
 
         self.pv_rec = pva.PvObject(pva_image_dict)
         self.pvaServer = pva.PvaServer(channel_name, self.pv_rec)
@@ -91,7 +94,18 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         #self.pvname = "PEGAS:miocb0101004.RBV"
         #img_pv = epics.PV(pvname, auto_monitor=True)
 
-        self.omega_pv = epics.PV("PEGAS:miocb0102000.RBV")
+        # self.omega_pv = epics.PV("PEGAS:miocb0102000.RBV")
+        # self.piezo45_pv = epics.PV("MCS2Hex:CTm2.RBV")
+        # self.piezo135_pv = epics.PV("MCS2Hex:CTm1.RBV")
+        # self.energy_pv = epics.PV("Energ:25000007rbv")
+        # self.distance_pv = epics.PV("faulhaber:m1.RBV")
+        # self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
+        # self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquireTime_RBV")
+        # self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
+        # self.W_velocity_pv = epics.PV("PEGAS:miocb0102000.VELO")
+
+        self.omega_pv = epics.PV("acsMotion:m2.RBV")
+        self.starting_angle = self.omega_pv.get()
         self.piezo45_pv = epics.PV("MCS2Hex:CTm2.RBV")
         self.piezo135_pv = epics.PV("MCS2Hex:CTm1.RBV")
         self.energy_pv = epics.PV("Energ:25000007rbv")
@@ -99,7 +113,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
         self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquireTime_RBV")
         self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
-        self.W_velocity_pv = epics.PV("PEGAS:miocb0102000.VELO")
+        self.W_velocity_pv = epics.PV("acsMotion:m2.VELO")
 
         #self.sizeX_pv = epics.PV("PCOEdge:cam1:SizeX_RBV")
         #self.sizeY_pv = epics.PV("PCOEdge:cam1:SizeY_RBV")
@@ -127,6 +141,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             print('No rotation detected!')
 
         self.prefill_CORs()
+
+        self.COR_1_flag = False
+        self.COR_2_flag = False
+        self.COR_3_flag = False
+        self.COR_4_flag = False
+
         self.update_pixel_size()
 
         self.i = 0
@@ -135,12 +155,16 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         #self.image_pv = epics.PV("PCOEdge:Pva1:Image:ArrayData", auto_monitor=True)
         self.image_pv.add_callback(self.update)
 
+        # self.pv_rec['dimension'] = [
+        #     {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
+        #     {'size': int(self.ringbuffer_size[0]), 'fullSize': int(self.ringbuffer_size[0]), 'binning': 1}]
+
         self.pv_rec['dimension'] = [
             {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
             {'size': int(self.ringbuffer_size[0]/2), 'fullSize': int(self.ringbuffer_size[0]/2), 'binning': 1}]
 
         self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
-        self.current_omega_pv = self.omega_pv.get()
+        self.starting_omega_pv = self.omega_pv.get()
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
 
         self.ringbuffer_exists = 1
@@ -156,11 +180,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
 
 
+
+
     def set_path(self):
         print('function set_path')
 
         self.new = 1
-        self.extend_FOV_fixed_ImageJ_Stream = 1.0
+        self.extend_FOV_fixed_ImageJ_Stream = 1.5
         self.ruler_grid_line_thickness = 2
         self.rotation_offset = 45   #still under question
         self.label_x = 'Piezo 45 [um]'
@@ -206,11 +232,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[-(round(self.sizeY / 2)) * self.sizeX: -(round(self.sizeY / 2) -1) * self.sizeX]
 
         self.current_omega_pv = self.omega_pv.get()
-        self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = self.current_omega_pv
+        print('omega to initial omega difference', self.current_omega_pv-self.starting_omega_pv)
+        #self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = self.current_omega_pv
 
-        print('Micos_W Ringbuffer', self.current_omega_pv)
+        #print('Micos_W Ringbuffer', self.current_omega_pv)
         #, self.ringbuffer_Micos_W)
-        #self.progressBar.setValue(self.omega_pv.get() % 360)
+        #self.progressBar.setValue(int(self.omega_pv.get() % 360))
         if (self.i % 5) == 0:
             print('FEEDING IMAGE')
             sinogram = self.ringbuffer[:,0,:]
@@ -218,30 +245,46 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             #angles.set_data(float(self.omega_pv.get()) % 360, self.i)
             #fig.canvas.flush_events()
             #self.slice_show = sinogram.astype(numpy.float32)
+            print('before read param')
 
             self.read_parameter()
+            print('after read param')
 
             position = self.i % self.ringbuffer_size[0]
             print('position', position)
-            if position >= int(self.ringbuffer_size[0]/2):
-                self.sino_chopped[:,0,:] = sinogram[position-int(self.ringbuffer_size[0]/2):position,:]
-            else:
-                self.sino_chopped[-position-1:,0,:] = sinogram[:position+1,:]
-                self.sino_chopped[:int(self.ringbuffer_size[0]/2)-position,0,:] = sinogram[-int(self.ringbuffer_size[0]/2) + position:,:]
+            # if position >= int((self.ringbuffer_size[0]/2)-1):
+            #     self.sino_chopped[:,0,:] = sinogram[position-int(self.ringbuffer_size[0]/2):position,:]
+            # else:
+            #     self.sino_chopped[-position-1:,0,:] = sinogram[:position+1,:]
+            #     self.sino_chopped[:int(self.ringbuffer_size[0]/2)-position,0,:] = sinogram[-int(self.ringbuffer_size[0]/2) + position:,:]
 
-            self.sino_chopped = self. sino_chopped.astype(numpy.float32)
+            half = int(self.ringbuffer_size[0] / 2)
+            N = int(self.ringbuffer_size[0])
+
+            idx = (numpy.arange(position - half + 1, position + 1) % N).astype(int)
+
+            self.sino_chopped[:, 0, :] = sinogram[idx, :]
+
+            self.sino_chopped = self.sino_chopped.astype(numpy.float32)
             # write result to pv
             self.pv_rec['value'] = ({'floatValue': self.sino_chopped.flatten()},)
+            #self.pv_rec['value'] = ({'floatValue': sinogram.flatten().astype(numpy.float32)},)
 
             #plt.imshow(sinogram, cmap='gray')
             #plt.show()
             print(int(self.ringbuffer_size[0]/2))
             self.extended_sinos = tomopy.minus_log(self.sino_chopped)
+            self.extend_FOV_fixed_ImageJ_Stream = 0.5
+            self.full_size = self.extended_sinos.shape[2]
             options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
             #+self.current_omega_pv/180*math.pi
-            #
-            self.slice = tomopy.recon(self.extended_sinos, numpy.linspace(0,math.pi,int(self.ringbuffer_size[0]/2),endpoint=False)+(((self.i % self.ringbuffer_size[0])/self.ringbuffer_size[0])% 45)*2*math.pi,
-                                      center=float(self.COR),
+            self.extended_sinos = tomopy.misc.morph.pad(self.extended_sinos, axis=2,
+                                                   npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size),
+                                                   mode='edge')
+            print('extended sinos size',self.extended_sinos.shape)
+
+            self.slice = tomopy.recon(self.extended_sinos, numpy.linspace(0,math.pi,int(self.ringbuffer_size[0]/2),endpoint=False)+(((self.i % self.ringbuffer_size[0])/self.ringbuffer_size[0]))*2*math.pi + self.starting_omega_pv/180*math.pi - self.rotation_offset/180*math.pi,
+                                      center=float(self.COR)+round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size),
                                       algorithm=tomopy.astra,
                                   options=options)
             print(self.slice.shape)
@@ -392,11 +435,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             self.pixel_size.setValue(1)
 
     def update_pixel_size(self):
-
         if self.lens_pv.get() == '2x':
             self.pixel_size_set = 3.6
-            self.buttons_deactivate_all()
-            self.COR_1.setEnabled(True)
+            if self.COR_1_flag == False:
+                self.buttons_deactivate_all()
+                self.COR_1.setEnabled(True)
+                self.COR_1_flag = True
+
             self.COR = self.COR_1.value()
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
         elif self.lens_pv.get() == '5x':
@@ -483,7 +528,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
     def add_ruler(self):
 
 
-        self.piezo45_val = self.piezo45_pv.get()
+        self.piezo45_val = -self.piezo45_pv.get()
 
         self.piezo135_val = self.piezo135_pv.get()
 
@@ -657,9 +702,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm='gridrec', filter_name='shepp')
 
 
-        #slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm='gridrec', filter_name='shepp')
+        slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm='gridrec', filter_name='shepp')
         slices = slices[:,round(self.full_size/4):-round(self.full_size/4),round(self.full_size/4):-round(self.full_size/4)]
-        slices = tomopy.circ_mask(slices, axis=0, ratio=1.0)
+        slices = tomopy.circ_mask(slices, axis=0, ratio=1.0,val=10)
         slices = slices * (10000 / self.pixel_size.value())
         self.slice = slices[0,:,:]   #reduce dimensions from 3 to 2
 
