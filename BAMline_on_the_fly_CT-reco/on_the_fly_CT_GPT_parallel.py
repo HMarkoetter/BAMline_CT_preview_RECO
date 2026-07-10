@@ -46,8 +46,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.setWindowTitle('On-the-fly CT Reco')
 
 
-        self.block_size = 64      #volume will be reconstructed blockwise to reduce needed RAM
-        self.pre_reco = 63         #odd number of Pre-Recos for different CORs
+        self.block_size = 256      #volume will be reconstructed blockwise to reduce needed RAM
+        self.pre_reco = 127         #odd number of Pre-Recos for different CORs
         self.extend_FOV = 0.15      #the reconstructed area will be enlarged in order to allow off axis scans
         self.crop_offset = 0        #needed for proper volume cropping
         self.batch_CORs = [0,0,0]
@@ -65,6 +65,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_ringradius.valueChanged.connect(self.check)
         self.COR.valueChanged.connect(self.check)
         self.COR_roll.valueChanged.connect(self.check)
+        self.COR_roll.valueChanged.connect(self.rotation_correction)
         self.Offset_Angle.valueChanged.connect(self.check)
         self.speed_W.valueChanged.connect(self.check)
         self.algorithm_list.currentIndexChanged.connect(self.check)
@@ -124,6 +125,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.auto_update.isChecked():
             self.check_test_button()
         return
+
+    def rotation_correction(self):      # display the CAM-ROT correction
+        CAM_rot = (numpy.arctan(self.COR_roll.value()))*180/math.pi
+        s = "{:.3f}".format(CAM_rot)
+        self.label_26.setText('CAM-rot rel: '+ s + '°')
 
     def update_window_size(self):
         self.new = 1
@@ -375,15 +381,17 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         # self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
         # self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
         #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
+        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_piezos']
         # self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_HUBER_W']
-        self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/AEROTECH_W']
+        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
         # print('self.line_proxy', self.line_proxy)
         if self.FF_before_after_checkbox.isChecked():
             print('---------------------FF before after--------------------------------')
             self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value()])
         else:
             self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
-        # print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
+        print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
 
         # find rotation start
         i = 0
@@ -626,13 +634,24 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.batch_CORs = shifts + self.center_list[0]
         print('batch CORs ', self.batch_CORs)
 
-        print('generating COR-batch', shifts)
+        print('generating COR-batch', shifts, self.batch_CORs)
         extended_sinos_vol = numpy.stack([extended_sinos[:, 0, :]] * shifts.shape[0], axis=1)
 
         print('reconstructing COR-batch')
-        self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs,
-                                        algorithm=self.algorithm_list.currentText(),
-                                        filter_name=self.filter_list.currentText())
+        #self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs,
+        #                                algorithm=self.algorithm_list.currentText(),
+        #                                filter_name=self.filter_list.currentText())
+
+        if self.algorithm_list.currentText() == 'FBP_CUDA':
+            options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
+            self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs, algorithm=tomopy.astra,
+                                  options=options)
+        else:
+            self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs,
+                                  algorithm=self.algorithm_list.currentText(),
+                                  filter_name=self.filter_list.currentText())
+
+
 
         # self.recon_stack = tomopy.circ_mask(self.recon_stack, axis=0, ratio=1.0)
 
@@ -830,8 +849,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             FFmean_vol = numpy.mean(FFs_vol, axis=0).astype(numpy.float32)
             # print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean_vol.shape)
 
+            #Sino_vol = self.vol_proxy[
+            #    self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), start_idx:end_idx, :].astype(
+            #    numpy.float32)
             Sino_vol = self.vol_proxy[
-                self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), start_idx:end_idx, :].astype(
+                self.spinBox_number_FFs.value(): , start_idx:end_idx, :].astype(
                 numpy.float32)
             DF_val = self.spinBox_DF.value()
             back_illum_val = self.spinBox_back_illumination.value()
@@ -883,6 +905,9 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.center_list = numpy.array([self.COR.value() + self.COR_roll.value() * (
                         i + self.spinBox_first.value()) * self.block_size + round(
                 self.extend_FOV_fixed_ImageJ_Stream * self.full_size)])
+
+            print('extended_sinos.shape', extended_sinos.shape)
+            print('new_list.shape', new_list.shape)
 
             start_time = time.time()
             # reconstruct

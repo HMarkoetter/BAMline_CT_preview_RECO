@@ -33,6 +33,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
     def __init__(self):
         super(On_the_fly_CT_tester, self).__init__()
         self.setupUi(self)
+        self.setAcceptDrops(True)
         self.setWindowTitle('On-the-fly CT Reco')
 
         #connect buttons to actions
@@ -63,6 +64,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_bottom.valueChanged.connect(self.update_window_size)
         self.spinBox_left.valueChanged.connect(self.update_window_size)
         self.spinBox_right.valueChanged.connect(self.update_window_size)
+        self.angle_directory_combobox.currentIndexChanged.connect(self.reload_angles) #change to reload angles if combobox changed
 
         self.block_size = 64        #volume will be reconstructed blockwise to reduce needed RAM
         self.extend_FOV = 0.15      #the reconstructed area will be enlarged in order to allow off axis scans
@@ -105,7 +107,16 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.Qchannel_name.setText(channel_name)
         self.pvaServer.start()
 
+        QtCore.QTimer.singleShot(0, self.show_dev_warning)
 
+    def show_dev_warning(self):
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Dev_mus",
+            "Watch out, you're running dev_mus version\n\n"
+            "Switch back to main if needed."
+            f"Channel name : {channel_name}"
+        )
 
     def check(self):    #AUTO UPDATE ON/OFF?
 
@@ -221,26 +232,234 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
 
 
-    def set_path(self):
-        #grey out the buttons while program is busy
+    def set_path(self): #boilerplate load function
+        path_klick, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            'Select hdf5-file, please.',
+            standard_path,
+            'HDF5 files (*.h5 *.hdf5 *.hdf);;All files (*)'
+        )
+
+        if path_klick:
+            self.load_hdf5_file(path_klick)
+        else:
+            print("User cancelled the dialog.")
+            self.buttons_activate_load()
+
+    def load_hdf5_file(self, path):
+        path = path.replace('\\', '/')  # keeps your existing path parsing working
+
+        if not path.lower().endswith(('.h5', '.hdf5', '.hdf')):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Unsupported file",
+                "Please drop or select an HDF5 file: .h5, .hdf5, or .hdf"
+            )
+            return
+
+        if not os.path.isfile(path):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "File not found",
+                f"The selected file does not exist:\n{path}"
+            )
+            return
+
         self.buttons_deactivate_all()
         self.pushReconstruct.setText('Busy')
         self.pushReconstruct_all.setText('Busy\n')
         self.new = 1
         self.extend_FOV_fixed_ImageJ_Stream = 0.15
 
-        #ask for hdf5-file
-        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
+        self.path_klick = path
+        print('path loaded: ', self.path_klick)
 
-        if path_klick[0]:
-            self.path_klick = path_klick[0]
-            print('path klicked: ', self.path_klick)
+        try:
             self.cut_path_name()
-        else:
-            print("User cancelled the dialog.")
+        except Exception as exc:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Could not load HDF5 file",
+                str(exc)
+            )
             self.buttons_activate_load()
+            self.pushReconstruct.setText('Test')
+            self.pushReconstruct_all.setText('Reconstruct\n Volume')
 
 
+    def _hdf5_path_from_event(self, event): #check if file opened is actually h5, either when dragdropped or usign Load
+        if not event.mimeData().hasUrls():
+            return None
+
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                path = url.toLocalFile()
+                if path.lower().endswith(('.h5', '.hdf5', '.hdf')):
+                    return path
+
+        return None
+
+    def dragEnterEvent(self, event): #Drag and droop support
+        if self._hdf5_path_from_event(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event): #Drag and droop support
+        if self._hdf5_path_from_event(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event): #Drag and droop support
+        path = self._hdf5_path_from_event(event)
+
+        if path:
+            event.acceptProposedAction()
+            self.load_hdf5_file(path)
+        else:
+            event.ignore()
+
+    def read_angles_from_hdf5(self):
+        if not hasattr(self, "path_klick"):
+            print("No HDF5 file loaded yet.")
+            return False
+
+        angles_destination = '/entry/instrument/NDAttributes/' + str(self.angle_directory_combobox.currentText())
+        print('Reloading angles from:', angles_destination)
+
+        try:
+            with h5py.File(self.path_klick, 'r') as f:
+                if angles_destination not in f:
+                    QtWidgets.QMessageBox.warning(
+                        self,
+                        "Angles not found",
+                        f"Could not find angle dataset:\n{angles_destination}"
+                    )
+                    return False
+
+                line_proxy = f[angles_destination]
+
+                if self.FF_before_after_checkbox.isChecked():
+                    self.graph = numpy.array(
+                        line_proxy[
+                        self.spinBox_number_FFs.value():
+                        -self.spinBox_number_FFs.value()
+                        ]
+                    )
+                else:
+                    self.graph = numpy.array(
+                        line_proxy[self.spinBox_number_FFs.value():]
+                    )
+
+                self.unwrapped = numpy.unwrap(numpy.deg2rad(self.graph))
+                self.span = abs(numpy.rad2deg(self.unwrapped[-1]-self.unwrapped[0]))
+
+                if self.span < 120:
+                    QtWidgets.QMessageBox.warning(
+                        self,
+                        "Invalid angles list",
+                        "Insufficient angular range : either change the selected angles list or the sample did not rotate"
+                    )
+                    return False
+
+                if numpy.isnan(numpy.sum(self.graph)):
+                    QtWidgets.QMessageBox.warning(
+                        self,
+                        "Invalid angles list",
+                        "NaN found in angles array : change the selected angles list"
+                    )
+                    return False
+
+
+        except Exception as exc:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Could not reload angles",
+                str(exc)
+            )
+            return False
+
+        print('found number of angles:', self.graph.shape, 'angles:', self.graph)
+
+        # Find rotation start again
+        i = 0
+        try:
+            while round(self.graph[i]) < 1:
+                self.last_zero_proj = i + 3
+                i += 1
+        except IndexError:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Could not find rotation start",
+                "Could not find the last zero projection. Try another angle path."
+            )
+            return False
+
+        print('Last projection at 0 degree/still speeding up:', self.last_zero_proj)
+
+        # Update angle list used by reconstruction
+        self.w = self.graph
+
+        # Recalculate angular speed
+        try:
+            start = round((self.w.shape[0] + 1) / 4)
+            stop = round((self.w.shape[0] + 1) * 7 / 8)
+
+            poly_coeff = numpy.polyfit(
+                numpy.arange(len(self.w[start:stop])),
+                self.w[start:stop],
+                1,
+                rcond=None,
+                full=False,
+                w=None,
+                cov=False
+            )
+
+            print(
+                'Polynom coefficients',
+                poly_coeff,
+                'Detected angular step per image:',
+                poly_coeff[0]
+            )
+
+            # Avoid triggering self.check() while we are already updating
+            old_state = self.speed_W.blockSignals(True)
+            self.speed_W.setValue(poly_coeff[0])
+            self.speed_W.blockSignals(old_state)
+
+        except Exception as exc:
+            print("Could not calculate angular speed:", exc)
+            return False
+        return True
+
+    def reload_angles(self):
+        if not hasattr(self, "path_klick"):
+            return
+
+        print("Angle directory changed.")
+
+        self.buttons_deactivate_all()
+        self.pushReconstruct.setText('Busy')
+        self.pushReconstruct_all.setText('Busy\n')
+        QtWidgets.QApplication.processEvents()
+
+        ok = self.read_angles_from_hdf5()
+
+        if ok:
+            # If normalized data is already in RAM, only reconstruct.
+            # If not, load the current slice first.
+            if hasattr(self, "Norm"):
+                self.reconstruct()
+            else:
+                self.load()
+        else:
+            self.buttons_activate_load()
+            self.buttons_activate_reco()
+            self.buttons_activate_crop_volume()
+            self.buttons_activate_reco_all()
+            self.pushReconstruct.setText('Test')
+            self.pushReconstruct_all.setText('Reconstruct\n Volume')
 
     def cut_path_name(self):
         #analyse and cut the path in pieces and get relevant information from raw-file
@@ -282,39 +501,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('set middle height as slice number:  ', self.slice_number.value())
         self.slice_number.setEnabled(True)
 
-        #get rotation angles
-        #self.line_proxy = f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        #self.line_proxy = f['/entry/instrument/NDAttributes/AEROTECH_W']
-        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
-        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
-        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_HUBER_W']
-        #self.line_proxy = f['/entry/instrument/NDAttributes/SAMPLE_W']
-        angles_destination = '/entry/instrument/NDAttributes/' + str(self.angle_directory_combobox.currentText())
-        print('Angles path : ', angles_destination)
-        self.line_proxy = f[angles_destination]
-        print('self.line_proxy', self.line_proxy)
-        if self.FF_before_after_checkbox.isChecked():
-            print('---------------------FF before after--------------------------------')
-            self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():-self.spinBox_number_FFs.value()])
-        else:
-            self.graph = numpy.array(self.line_proxy[self.spinBox_number_FFs.value():])
-        print('found number of angles:  ', self.graph.shape, '      angles: ', self.graph)
-
-        #find rotation start
-        i = 0
-        try:
-            while round(self.graph[i]) < 1:  # notice the last projection at below 0.5°
-                self.last_zero_proj = i + 3  # assumes 3 images for speeding up the motor
-                i = i + 1
-        except(IndexError):
-            print('Could not find last zero projection : try another angles path or if the scan is a radiography ?')
+        if not self.read_angles_from_hdf5():
             self.buttons_activate_load()
             self.buttons_activate_reco()
             self.buttons_activate_crop_volume()
             self.buttons_activate_reco_all()
             return None
-        #print(self.graph[1021:1500])
-        print('Last projection at 0 degree/still speeding up: number', self.last_zero_proj)
 
         if self.COR.value() == 0:
             self.COR.setValue(round(self.vol_proxy.shape[2] / 2))
@@ -431,7 +623,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             i=0
             while i < self.Norm.shape[0]:
                 self.Norm[i, :] = numpy.divide(self.Norm[i, :], correction_map[0,:])
-                self.progressBar.setValue((i + 1) * 100 / self.Norm.shape[0])
+                self.progressBar.setValue(int((i + 1) * 100 / self.Norm.shape[0]))
                 QtWidgets.QApplication.processEvents()
                 i = i+1
 
@@ -746,7 +938,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         print('number of used projections', self.number_of_used_projections)
 
         # create list with projection angles
-        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
+        new_list = (numpy.arange(self.number_of_used_projections+10) * self.speed_W.value() + self.Offset_Angle.value()) * math.pi / 180
         print(new_list.shape)
 
 
@@ -783,17 +975,30 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         #divide volume into blocks and reconstruct them one by one in order to save RAM
         #self.vol_proxy_crop = self.vol_proxy[:,self.spinBox_first.value():self.spinBox_last.value(),:]
         i = 0
-        while (i < math.ceil((self.spinBox_last.value() - self.spinBox_first.value()) / self.block_size)):       #Need to fix the rest of slices
+        while (i < math.ceil((self.spinBox_last.value() - self.spinBox_first.value()) / self.block_size)):
 
-            print('Reconstructing block', i + 1, 'of', math.ceil((self.spinBox_last.value() - self.spinBox_first.value()) / self.block_size))
+            print('Reconstructing block', i + 1, 'of',
+                  math.ceil((self.spinBox_last.value() - self.spinBox_first.value()) / self.block_size))
 
-            FFs_vol = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, i * self.block_size + self.spinBox_first.value(): (i + 1) * self.block_size + self.spinBox_first.value(), :]
-            FFmean_vol = numpy.mean(FFs_vol, axis=0)
-            print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean_vol.shape)
-            Sino_vol = self.vol_proxy[self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), i * self.block_size + self.spinBox_first.value(): (i + 1) * self.block_size + self.spinBox_first.value(), :]
-            self.Norm_vol = numpy.divide(Sino_vol - self.spinBox_DF.value(), FFmean_vol - self.spinBox_DF.value() - self.spinBox_back_illumination.value())
-            print('sinogram shape', self.Norm_vol.shape)
+            start_idx = i * self.block_size + self.spinBox_first.value()
+            end_idx = (i + 1) * self.block_size + self.spinBox_first.value()
 
+            if self.FF_before_after_checkbox.isChecked():
+                FFs_vol_1 = self.vol_proxy[-(self.spinBox_number_FFs.value() - 1):, start_idx:end_idx, :]
+                FFs_vol_2 = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, start_idx:end_idx, :]
+                FFmean_vol_1 = numpy.mean(FFs_vol_1, axis=0).astype(numpy.float32)
+                FFmean_vol_2 = numpy.mean(FFs_vol_2, axis=0).astype(numpy.float32)
+                FFmean_vol = (FFmean_vol_1 + FFmean_vol_2) / 2
+                print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean_vol.shape)
+
+                Sino_vol = self.vol_proxy[
+                    self.spinBox_number_FFs.value(): -self.spinBox_number_FFs.value(), start_idx:end_idx, :].astype(
+                    numpy.float32)
+            else:
+                FFs_vol = self.vol_proxy[0:self.spinBox_number_FFs.value() - 1, start_idx:end_idx, :]
+                FFmean_vol = numpy.mean(FFs_vol, axis=0).astype(numpy.float32)
+                print('FFs for normalization ', self.spinBox_number_FFs.value(), FFmean_vol.shape)
+                Sino_vol = self.vol_proxy[self.spinBox_number_FFs.value():, start_idx:end_idx, :].astype(numpy.float32)
 
             # Ring artifact handling
             if self.spinBox_ringradius.value() != 0:
@@ -817,9 +1022,6 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 print('finished ring handling')
             else:
                 print('did not do ring handling')
-
-
-
 
             #extend data, take logarithm, remove NaN-values
             extended_sinos = self.Norm_vol[self.last_zero_proj : min(self.last_zero_proj + self.number_of_used_projections, self.Norm_vol.shape[0]), :, :]
@@ -892,7 +1094,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
                 # write the reconstructed block to disk as TIF-file
                 a = 1
                 while (a < self.block_size + 1) and (a < slices_save.shape[0] + 1):
-                    self.progressBar.setValue((a + (i * self.block_size)) * 100 / (self.spinBox_last.value() - self.spinBox_first.value()))
+                    self.progressBar.setValue(int((a + (i * self.block_size)) * 100 / (self.spinBox_last.value() - self.spinBox_first.value())))
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
                     filename2 = self.path_out_reconstructed_full + self.namepart + '_' + str(
@@ -918,7 +1120,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
                 else:
                     # write the subsequent blocks into the hdf5-file
-                    self.progressBar.setValue((i * self.block_size) * 100 / (self.spinBox_last.value() - self.spinBox_first.value()))
+                    self.progressBar.setValue(int((i * self.block_size) * 100 / (self.spinBox_last.value() - self.spinBox_first.value())))
                     QtCore.QCoreApplication.processEvents()
                     time.sleep(0.02)
                     f = h5py.File(self.path_out_reconstructed_full + '/' + self.folder_name + '_reco' + '.h5', 'r+')

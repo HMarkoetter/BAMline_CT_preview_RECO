@@ -31,39 +31,39 @@ class HDF_Browser(Ui_HDF_Browser_Window, Q_HDF_Browser_Window):
         self.Qchannel_name.returnPressed.connect(self.updatepva)
         self.setAcceptDrops(True)
 
-        self.pva_image_dict = {'value': ({'booleanValue': [pva.pvaccess.ScalarType.BOOLEAN], 'byteValue':
-            [pva.pvaccess.ScalarType.BYTE], 'shortValue': [pva.pvaccess.ScalarType.SHORT], 'intValue':
-                                         [pva.pvaccess.ScalarType.INT], 'longValue': [pva.pvaccess.ScalarType.LONG],
+        self.pva_image_dict = {'value': ({'booleanValue': [pva.ScalarType.BOOLEAN], 'byteValue':
+            [pva.ScalarType.BYTE], 'shortValue': [pva.ScalarType.SHORT], 'intValue':
+                                         [pva.ScalarType.INT], 'longValue': [pva.ScalarType.LONG],
                                      'ubyteValue':
-                                         [pva.pvaccess.ScalarType.UBYTE],
-                                     'ushortValue': [pva.pvaccess.ScalarType.USHORT], 'uintValue':
-                                         [pva.pvaccess.ScalarType.UINT], 'ulongValue': [pva.pvaccess.ScalarType.ULONG],
+                                         [pva.ScalarType.UBYTE],
+                                     'ushortValue': [pva.ScalarType.USHORT], 'uintValue':
+                                         [pva.ScalarType.UINT], 'ulongValue': [pva.ScalarType.ULONG],
                                      'floatValue':
-                                         [pva.pvaccess.ScalarType.FLOAT],
-                                     'doubleValue': [pva.pvaccess.ScalarType.DOUBLE]},), 'codec':
-                              {'name': pva.pvaccess.ScalarType.STRING, 'parameters': ()}, 'compressedSize':
-                              pva.pvaccess.ScalarType.LONG, 'uncompressedSize': pva.pvaccess.ScalarType.LONG,
+                                         [pva.ScalarType.FLOAT],
+                                     'doubleValue': [pva.ScalarType.DOUBLE]},), 'codec':
+                              {'name': pva.ScalarType.STRING, 'parameters': ()}, 'compressedSize':
+                              pva.ScalarType.LONG, 'uncompressedSize': pva.ScalarType.LONG,
                           'dimension':
-                              [{'size': pva.pvaccess.ScalarType.INT, 'offset': pva.pvaccess.ScalarType.INT, 'fullSize':
-                                  pva.pvaccess.ScalarType.INT, 'binning': pva.pvaccess.ScalarType.INT, 'reverse':
-                                    pva.pvaccess.ScalarType.BOOLEAN}], 'uniqueId': pva.pvaccess.ScalarType.INT,
+                              [{'size': pva.ScalarType.INT, 'offset': pva.ScalarType.INT, 'fullSize':
+                                  pva.ScalarType.INT, 'binning': pva.ScalarType.INT, 'reverse':
+                                    pva.ScalarType.BOOLEAN}], 'uniqueId': pva.ScalarType.INT,
                           'dataTimeStamp':
-                              {'secondsPastEpoch': pva.pvaccess.ScalarType.LONG,
-                               'nanoseconds': pva.pvaccess.ScalarType.INT,
-                               'userTag': pva.pvaccess.ScalarType.INT}, 'attribute':
-                              [{'name': pva.pvaccess.ScalarType.STRING, 'value': (),
-                                'descriptor': pva.pvaccess.ScalarType.STRING,
-                                'sourceType': pva.pvaccess.ScalarType.INT, 'source': pva.pvaccess.ScalarType.STRING}],
+                              {'secondsPastEpoch': pva.ScalarType.LONG,
+                               'nanoseconds': pva.ScalarType.INT,
+                               'userTag': pva.ScalarType.INT}, 'attribute':
+                              [{'name': pva.ScalarType.STRING, 'value': (),
+                                'descriptor': pva.ScalarType.STRING,
+                                'sourceType': pva.ScalarType.INT, 'source': pva.ScalarType.STRING}],
                           'descriptor':
-                              pva.pvaccess.ScalarType.STRING,
-                          'alarm': {'severity': pva.pvaccess.ScalarType.INT, 'status':
-                              pva.pvaccess.ScalarType.INT, 'message': pva.pvaccess.ScalarType.STRING}, 'timeStamp':
-                              {'secondsPastEpoch': pva.pvaccess.ScalarType.LONG,
-                               'nanoseconds': pva.pvaccess.ScalarType.INT, 'userTag':
-                                   pva.pvaccess.ScalarType.INT},
-                          'display': {'limitLow': pva.pvaccess.ScalarType.DOUBLE, 'limitHigh':
-                              pva.pvaccess.ScalarType.DOUBLE, 'description': pva.pvaccess.ScalarType.STRING, 'format':
-                                          pva.pvaccess.ScalarType.STRING, 'units': pva.pvaccess.ScalarType.STRING}}
+                              pva.ScalarType.STRING,
+                          'alarm': {'severity': pva.ScalarType.INT, 'status':
+                              pva.ScalarType.INT, 'message': pva.ScalarType.STRING}, 'timeStamp':
+                              {'secondsPastEpoch': pva.ScalarType.LONG,
+                               'nanoseconds': pva.ScalarType.INT, 'userTag':
+                                   pva.ScalarType.INT},
+                          'display': {'limitLow': pva.ScalarType.DOUBLE, 'limitHigh':
+                              pva.ScalarType.DOUBLE, 'description': pva.ScalarType.STRING, 'format':
+                                          pva.ScalarType.STRING, 'units': pva.ScalarType.STRING}}
         self.image = pva.PvObject(self.pva_image_dict)
         self.pvaServer_HDF_Image_Browser = pva.PvaServer(self.Qchannel_name.text(), self.image)
         self.pvaServer_HDF_Image_Browser.start()
