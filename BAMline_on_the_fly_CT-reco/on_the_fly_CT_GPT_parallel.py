@@ -160,7 +160,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         if COR_in_list.size > 0:
             print('COR already reconstructed. Display from RAM. COR_in_list position: ', COR_in_list[0], ' of ',
-                  self.pre_reco)
+                  self.pre_reco, self.batch_CORs[COR_in_list[0]])
+            print('Type:', type(self.batch_CORs[COR_in_list[0]]))
             self.slice = self.recon_stack[COR_in_list[0], :, :]
 
             # trim reconstructed slice
@@ -647,7 +648,7 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
             self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs, algorithm=tomopy.astra,
                                   options=options)
         else:
-            self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs,
+            self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=numpy.array(self.batch_CORs, dtype='float32'),
                                   algorithm=self.algorithm_list.currentText(),
                                   filter_name=self.filter_list.currentText())
 
