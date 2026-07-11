@@ -1,6 +1,5 @@
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QColor, QPalette
 from PyQt5.uic import loadUiType
 from PIL import Image
 import h5py
@@ -20,6 +19,7 @@ import matplotlib.pyplot as plt
 # On-the-fly Navigator
 version =  "Version 2026.16.06"
 
+os.environ["EPICS_CA_ADDR_LIST"] = "172.31.20.131 172.31.20.231 172.31.20.145"
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
 channel_name = 'BAMline:Navigator'
@@ -37,6 +37,128 @@ Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window = loadUiType('on_t
 #imgplotted = ax.imshow(numpy.zeros((720,2560)),cmap='gray',vmin=0,vmax=65535)
 #angles, = ax2.plot(0,0,'o',color='red', )
 
+class AngularStatusWidget(QtWidgets.QWidget):
+    projection_received = QtCore.pyqtSignal(float, bool)
+    history_reset = QtCore.pyqtSignal()
+    stable_complete = QtCore.pyqtSignal()
+
+    def __init__(self, sector_count, parent=None):
+        super().__init__(parent)
+        self.arc_count = min(72, max(12, int(sector_count)))
+        self.arcs = numpy.zeros(self.arc_count, dtype=numpy.uint8)
+        self.current_angle = 0.0
+        self.complete = False
+        self.paint_pending = True
+        self.setMinimumSize(120, 120)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        self.projection_received.connect(self._record_projection)
+        self.history_reset.connect(self._reset_history)
+        self.stable_complete.connect(self._set_complete)
+
+        self.repaint_timer = QtCore.QTimer(self)
+        self.repaint_timer.timeout.connect(self._repaint_if_pending)
+        self.repaint_timer.start(33)
+
+    def record_projection(self, angle, moving):
+        self.projection_received.emit(float(angle), bool(moving))
+
+    def reset_history(self):
+        self.history_reset.emit()
+
+    def mark_stable_complete(self):
+        self.stable_complete.emit()
+
+    @QtCore.pyqtSlot(float, bool)
+    def _record_projection(self, angle, moving):
+        self.current_angle = angle % 360.0
+        position = int(self.current_angle / 360.0 * self.arc_count) % self.arc_count
+        opposite = (position + self.arc_count // 2) % self.arc_count
+        color_index = 1 if moving else 2
+        self.arcs[position] = color_index
+        self.arcs[opposite] = color_index
+        self.paint_pending = True
+
+    @QtCore.pyqtSlot()
+    def _reset_history(self):
+        self.arcs.fill(0)
+        self.complete = False
+        self.paint_pending = True
+
+    @QtCore.pyqtSlot()
+    def _set_complete(self):
+        self.arcs.fill(2)
+        self.complete = True
+        self.paint_pending = True
+
+    @QtCore.pyqtSlot()
+    def _repaint_if_pending(self):
+        if self.paint_pending:
+            self.paint_pending = False
+            self.update()
+
+    def _draw_arc_runs(self, painter, circle, state, color, width):
+        span = 360.0 / self.arc_count
+        position = 0
+        painter.setPen(QtGui.QPen(color, width, QtCore.Qt.SolidLine, QtCore.Qt.FlatCap))
+
+        while position < self.arc_count:
+            if self.arcs[position] != state:
+                position += 1
+                continue
+
+            start = position
+            while position < self.arc_count and self.arcs[position] == state:
+                position += 1
+
+            painter.drawArc(
+                circle,
+                -round((90.0 - start * span) * 16),
+                -round(-(position - start) * span * 16),
+            )
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        side = min(self.width(), self.height()) - 8
+        ring_width = max(12.0, side * 0.27)
+        ring_diameter = side - ring_width
+        circle = QtCore.QRectF(
+            (self.width() - ring_diameter) / 2,
+            (self.height() - ring_diameter) / 2,
+            ring_diameter,
+            ring_diameter,
+        )
+
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(QtGui.QPen(QtGui.QColor('#d9dde3'), ring_width))
+        painter.drawEllipse(circle)
+        self._draw_arc_runs(painter, circle, 1, QtGui.QColor('#9c2aa0'), ring_width)
+        self._draw_arc_runs(painter, circle, 2, QtGui.QColor('#49a72f'), ring_width)
+
+        center_radius = side * 0.22
+        center = circle.center()
+        painter.setBrush(QtGui.QColor('#49a72f') if self.complete else QtGui.QColor('#e53935'))
+        painter.setPen(QtGui.QPen(QtGui.QColor('#4a4a4a'), 1))
+        painter.drawEllipse(center, center_radius, center_radius)
+
+        angle = -math.radians(self.current_angle - 90.0)
+        angle2 = -math.radians(self.current_angle - 90.0- 180)
+        line_radius = side * 0.47
+        endpoint = QtCore.QPointF(
+            center.x() + math.cos(angle) * line_radius,
+            center.y() + math.sin(angle) * line_radius,
+        )
+        endpoint2 = QtCore.QPointF(
+            center.x() + math.cos(angle2) * line_radius,
+            center.y() + math.sin(angle2) * line_radius,
+        )
+        painter.setPen(QtGui.QPen(QtGui.QColor('#202124'), 2))
+        painter.drawLine(center, endpoint)
+        painter.drawLine(center, endpoint2)
+
+
 
 class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window):
 
@@ -46,12 +168,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.setupUi(self)
         self.setWindowTitle('On-the-fly Navigator')
 
-        #connect buttons to actions
-        self.pushLoad.clicked.connect(self.set_path)
-
-        #### from tomostream.py, nikitinvv git, micha
-        # pva type channel that contains projection and metadata
-        #self.pva_structure = pva.Channel('PCO1600:Pva1:Image')
 
         # create pva type pv for reconstruction by copying metadata from the data pv, but replacing the sizes
         # This way the ADViewer (NDViewer) plugin can be also used for visualizing reconstructions.
@@ -92,53 +208,40 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.pvaServer_proj = pva.PvaServer(channel_name_proj, self.proj_rec)
         self.pvaServer_proj.start()
 
-        #self.fig, self.ax = plt.subplots()
-
-        #pvname = "PCOEdge:image1:ArrayData"
-        #self.pvname = "PEGAS:miocb0101004.RBV"
-        #img_pv = epics.PV(pvname, auto_monitor=True)
-
-        # self.omega_pv = epics.PV("PEGAS:miocb0102000.RBV")
-        # self.piezo45_pv = epics.PV("MCS2Hex:CTm2.RBV")
-        # self.piezo135_pv = epics.PV("MCS2Hex:CTm1.RBV")
-        # self.energy_pv = epics.PV("Energ:25000007rbv")
-        # self.distance_pv = epics.PV("faulhaber:m1.RBV")
-        # self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
-        # self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquireTime_RBV")
-        # self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
-        # self.W_velocity_pv = epics.PV("PEGAS:miocb0102000.VELO")
-
         self.omega_pv = epics.PV("acsMotion:m2.RBV")
         self.starting_angle = self.omega_pv.get()
+        self.jogF_pv = epics.PV("acsMotion:m2.JOGF")
+        self.jofvelo_pv = epics.PV("acsMotion:m2.JVEL")
+        self.omega_stop_pv = epics.PV("acsMotion:m2.STOP")
+        self.start_rotate.clicked.connect(self.rotate)
+
         self.piezo45_pv = epics.PV("MCS2Hex:CTm2.RBV")
         self.piezo135_pv = epics.PV("MCS2Hex:CTm1.RBV")
         self.energy_pv = epics.PV("Energ:25000007rbv")
         self.distance_pv = epics.PV("faulhaber:m1.RBV")
         self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
-        #self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquireTime_RBV")
-        #self.aqp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
         self.exp_time_pv =epics.PV("PCOEdge:cam1:AcquirePeriod_RBV")
         self.W_velocity_pv = epics.PV("acsMotion:m2.VELO")
 
-        #self.sizeX_pv = epics.PV("PCOEdge:cam1:SizeX_RBV")
-        #self.sizeY_pv = epics.PV("PCOEdge:cam1:SizeY_RBV")
-        #self.binningx_pv = epics.PV("PCOEdge:cam1:BinX_RBV")
-        #self.binningy_pv = epics.PV("PCOEdge:cam1:BinY_RBV")
+        pv_cam_exp = epics.PV("PCOEdge:cam1:AcquireTime")
+        pv_cam_period = epics.PV("PCOEdge:cam1:AcquirePeriod")
 
         self.sizeX_pv = epics.PV("PCOEdge:ROI1:ArraySizeX_RBV")
         self.sizeY_pv = epics.PV("PCOEdge:ROI1:ArraySizeY_RBV")
         self.binningx_pv = epics.PV("PCOEdge:ROI1:BinX_RBV")
         self.binningy_pv = epics.PV("PCOEdge:ROI1:BinY_RBV")
 
-        self.full_sizeX_pv = epics.PV("XXX")
-        self.full_sizeY_pv = epics.PV("XXX")
+        self.full_sizeX_pv = epics.PV("PCOEdge:ROI2:ArraySizeX_RBV")
+        self.full_sizeY_pv = epics.PV("PCOEdge:ROI2:ArraySizeY_RBV")
+        self.proj_size_x = int(self.full_sizeX_pv.get())
+        self.proj_size_y = int(self.full_sizeY_pv.get())
 
         self.piezo45_pv_forward = epics.PV("MCS2Hex:CTm2.TWF")
         self.piezo45_pv_backward = epics.PV("MCS2Hex:CTm2.TWR")
         self.piezo45_pv_value = epics.PV("MCS2Hex:CTm2.TWV")
 
-        self.piezo135_pv_forward = epics.PV("MCS2Hex:CTm1.TWF")
-        self.piezo135_pv_backward = epics.PV("MCS2Hex:CTm1.TWR")
+        self.piezo135_pv_forward = epics.PV("MCS2Hex:CTm1.TWR")
+        self.piezo135_pv_backward = epics.PV("MCS2Hex:CTm1.TWF") #these 2 are flipped on purpose, so that the +/- logic is the same on both 45/135
         self.piezo135_pv_value = epics.PV("MCS2Hex:CTm1.TWV")
 
         self.piezo_45_plus.clicked.connect(lambda: self.put_values(pv =self.piezo45_pv_forward, value=1))
@@ -147,28 +250,18 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.piezo_135_plus.clicked.connect(lambda: self.put_values(pv =self.piezo135_pv_forward, value=1))
         self.piezo_135_minus.clicked.connect(lambda: self.put_values(pv =self.piezo135_pv_backward, value=1))
 
-        # Dial/reconstruction validity state
+        # Angular acquisition/reconstruction validity state
         self.piezo_dmov = {
             "MCS2Hex:CTm1.DMOV": None,
             "MCS2Hex:CTm2.DMOV": None,
+            "OMS58:25008001.DMOV":None,
+            "faulhaber:m1.DMOV":None,
+            "PEGAS:miocb0102001.DMOV":None,
         }
         self.parameters_changed = True
         self.full_rotation = False
         self.stable_projection_count = 0
         self.last_lens = None
-
-        # Use the dial as a 0-360 degree completion indicator.
-        self.dial.setMinimum(0)
-        self.dial.setMaximum(360)
-        self.dial.setValue(0)
-        self.dial.setWrapping(False)
-        self.dial.setNotchesVisible(True)
-        self.set_dial_color("red")
-
-        #XXX
-        epics.camonitor("MCS2Hex:CTm1.DMOV", writer=self.pv_monitor)
-        epics.camonitor("MCS2Hex:CTm2.DMOV", writer=self.pv_monitor)
-        #XXX
 
         self.binningx,self.binningy = self.binningx_pv.get(),self.binningy_pv.get()
 
@@ -186,6 +279,18 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             print('No rotation detected!')
 
+        old_dial = self.dial
+        self.dial = AngularStatusWidget(self.ringbuffer_size[0], old_dial.parentWidget())
+        self.dial.setObjectName('dial')
+        self.gridLayout_6.replaceWidget(old_dial, self.dial)
+        old_dial.deleteLater()
+
+        self.piezo_dmov_pvs = {}
+        for pvname in self.piezo_dmov:
+            monitored_pv = epics.PV(pvname, auto_monitor=True)
+            self.piezo_dmov_pvs[pvname] = monitored_pv
+            monitored_pv.add_callback(self.pv_monitor, run_now=True)
+
         self.prefill_CORs()
 
         self.COR_2x_flag = False
@@ -198,13 +303,16 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.i = 0
 
         self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
-        self.proj_pv = epics.PV("XXX")
-        #self.image_pv = epics.PV("PCOEdge:Pva1:Image:ArrayData", auto_monitor=True)
+        self.proj_pv = epics.PV("PCOEdge:image2:ArrayData", auto_monitor=True)
         self.image_pv.add_callback(self.update)
 
         self.pv_rec['dimension'] = [
              {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
              {'size': int(self.ringbuffer_size[0]), 'fullSize': int(self.ringbuffer_size[0]), 'binning': 1}]
+
+        self.proj_rec['dimension'] = [
+             {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
+             {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}]
 
         self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.starting_omega_pv = self.omega_pv.get()
@@ -216,11 +324,23 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.sino_chopped = numpy.zeros((int(self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
 
         self.ruler_grid_line_thickness = 1
-        self.rotation_offset = 45 #still under question
+        self.rotation_offset = 0 #still under question
         self.label_x = 'Piezo 45 [um]'
         self.label_y = 'Piezo 135 [um]'
 
         self.N = int(self.ringbuffer_size[0])
+        self.start_rotate.setEnabled(True)
+
+    def rotate(self):
+        self.rotate_status = self.jogF_pv.get()
+        if self.rotate_status == 0:
+            self.jogF_pv.put(1)
+            self.start_rotate.setText('STOP')
+        else:
+            self.jogF_pv.put(0)
+            self.start_rotate.setText('Start endless rotation')
+            self.starting_omega_pv = self.omega_pv.get()
+
 
     def put_values(self, pv, value):
         pv.put(value)
@@ -229,65 +349,21 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         if self.i==0:
             return
 
-    def set_path(self):
-        print('function set_path')
-
-        self.new = 1
-        self.extend_FOV_fixed_ImageJ_Stream = 1.5
-        self.ruler_grid_line_thickness = 1
-        self.rotation_offset = 45   #still under question
-        self.label_x = 'Piezo 45 [um]'
-        self.label_y = 'Piezo 135 [um]'
-
-        #ask for hdf5-file
-        path_klick = QtWidgets.QFileDialog.getOpenFileName(self, 'Select hdf5-file, please.', standard_path)
-
-        if path_klick[0]:
-            self.path_klick = path_klick[0]
-            print('path klicked: ', self.path_klick)
-            self.cut_path_name()
-        else:
-            print("User cancelled the dialog.")
-            self.buttons_activate_load()
-
-    def set_dial_color(self, color):
-        """Change the visible face color of the QDial."""
-        palette = self.dial.palette()
-        color = QColor(color)
-
-        palette.setColor(QPalette.Active, QPalette.Button, color)
-        palette.setColor(QPalette.Inactive, QPalette.Button, color)
-        palette.setColor(
-            QPalette.Disabled,
-            QPalette.Button,
-            color.darker(160)
-        )
-
-        self.dial.setPalette(palette)
-        self.dial.update()
 
     def parameters_have_changed(self, moving=False):
         """Invalidate the current ringbuffer and reconstruction."""
         self.parameters_changed = True
         self.full_rotation = False
         self.stable_projection_count = 0
+        self.dial.reset_history()
 
-        self.dial.setValue(0)
-
-        if moving:
-            self.set_dial_color("purple")
-        else:
-            self.set_dial_color("red")
-
-    def pv_monitor(self, pv_value):
+    def pv_monitor(self, pvname=None, value=None, **kwargs):
         try:
-            pv, date, zeit, value = pv_value.split()
-
-            if pv not in self.piezo_dmov:
+            if pvname not in self.piezo_dmov or value is None:
                 return
 
             value = int(float(value))
-            self.piezo_dmov[pv] = value
+            self.piezo_dmov[pvname] = value
 
             # Either piezo is moving.
             if any(dmov == 0 for dmov in self.piezo_dmov.values()):
@@ -301,11 +377,10 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             # Both piezos are stopped. Keep the reconstruction invalid
             # until a complete fresh rotation has been collected.
             if all(dmov == 1 for dmov in self.piezo_dmov.values()):
-                if self.parameters_changed and not self.full_rotation:
-                    self.set_dial_color("red")
+                return
 
         except (ValueError, TypeError, AttributeError) as error:
-            print("Could not process DMOV monitor:", pv_value, error)
+            print("Could not process DMOV monitor:", pvname, value, error)
 
 
     def create_ringbuffer(self):
@@ -317,46 +392,37 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.sino_chopped = numpy.zeros(((self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
 
-
-        #self.prefill_CORs()
-        #self.update_pixel_size()
-
     def update(self, **kwargs):
-
-
-        #print('update function')
         rawimgflat = self.image_pv.get()
-        #print(self.image_pv.get())
 
-        #print('aqp_time_pv', self.aqp_time_pv.get(), 'exp_time_pv', self.exp_time_pv.get(), 'omega_pv', self.omega_pv.get(),'piezo45_pv', self.piezo45_pv.get(),'piezo135_pv', self.piezo135_pv.get(),'energy_pv', self.energy_pv.get(),'distance_pv', self.distance_pv.get(),'lens_pv', self.lens_pv.get(as_string=True),'sizeX_pv', self.sizeX_pv.get(),'sizeY_pv', self.sizeY_pv.get())
-        #self.im_size = (self.sizeX,self.sizeY)
-        rawimg2d = numpy.frombuffer(rawimgflat, dtype='H').reshape((self.sizeY,self.sizeX))
-        #print(rawimg2d.shape)
-
-        #self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimg2d[self.slice_number.value(), : ]
-        #if self.parameters_changed:
         self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[-(round(self.sizeY / 2)) * self.sizeX: -(round(self.sizeY / 2) -1) * self.sizeX]
 
         # While the current parameters are invalid, count new projections.
         # A full ringbuffer refill represents one complete fresh rotation.
+        piezo_state_known = None not in self.piezo_dmov.values()
         both_piezos_stopped = (
-            None not in self.piezo_dmov.values()
+            piezo_state_known
             and all(dmov == 1 for dmov in self.piezo_dmov.values())
         )
+        piezo_is_moving = (
+            piezo_state_known
+            and any(dmov == 0 for dmov in self.piezo_dmov.values())
+        )
+
+        acquisition_angle = (
+            float(self.starting_angle or 0.0)
+            + (self.i % self.ringbuffer_size[0]) * 360.0 / self.ringbuffer_size[0]
+        ) % 360.0
+        self.dial.record_projection(acquisition_angle, piezo_is_moving)
 
         if self.parameters_changed and not self.full_rotation and both_piezos_stopped:
             self.stable_projection_count += 1
-            required_projections = int(self.ringbuffer_size[0])
-
-            progress_degrees = int(
-                360 * self.stable_projection_count / required_projections
-            )
-            self.dial.setValue(min(progress_degrees, 360))
+            required_projections = int(math.ceil(self.ringbuffer_size[0] / 2))
 
             if self.stable_projection_count >= required_projections:
                 self.full_rotation = True
-                self.dial.setValue(360)
-                print('Full stable rotation collected')
+                self.dial.mark_stable_complete()
+                print('Stable 180 degree rotation collected')
 
         self.current_omega_pv = self.omega_pv.get()
 
@@ -364,17 +430,9 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             projection = self.proj_pv.get()
             if projection is not None:
                 projection = numpy.asarray(projection)
-
-                if projection.ndim >= 2:
-                    projection_height = int(projection.shape[-2])
-                    projection_width = int(projection.shape[-1])
-                else:
-                    projection_height = 1
-                    projection_width = int(projection.size)
-
                 self.proj_rec['dimension'] = [
-                    {'size': projection_width, 'fullSize': projection_width, 'binning': 1},
-                    {'size': projection_height, 'fullSize': projection_height, 'binning': 1}
+                    {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
+                    {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}
                 ]
                 self.proj_rec['value'] = (
                     {'floatValue': projection.flatten().astype(numpy.float32)},
@@ -466,8 +524,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             # The published reconstruction is valid only after one complete
             # rotation has been acquired with unchanged parameters.
             if self.parameters_changed and self.full_rotation:
-                self.dial.setValue(360)
-                self.set_dial_color("green")
                 self.parameters_changed = False
                 print('Stable reconstruction published')
 
@@ -561,7 +617,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
 
     def buttons_deactivate_all(self):
-        #self.pushLoad.setEnabled(False)
         #self.slice_number.setEnabled(False)
         self.COR_1.setEnabled(False)
         self.COR_2.setEnabled(False)
@@ -574,7 +629,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.COR_20x_flag = False
 
     def buttons_activate_load(self):
-        self.pushLoad.setEnabled(True)
+        print('function buttons_activate_load')
 
 
     def prefill_slice_number(self):  #get the image dimensions and prefill slice number

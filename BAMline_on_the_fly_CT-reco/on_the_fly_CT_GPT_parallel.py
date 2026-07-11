@@ -83,6 +83,12 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         self.spinBox_bottom.valueChanged.connect(self.update_window_size)
         self.spinBox_left.valueChanged.connect(self.update_window_size)
         self.spinBox_right.valueChanged.connect(self.update_window_size)
+        self.COR_step_value = 2
+        self.radioButton_CORstep2.toggled.connect(lambda: self.COR_step(step=2))
+        self.radioButton_CORstep1.toggled.connect(lambda: self.COR_step(step=1))
+        self.radioButton_CORstep0p5.toggled.connect(lambda: self.COR_step(step=0.5))
+        self.radioButton_CORstep0p25.toggled.connect(lambda: self.COR_step(step=0.25))
+        self.radioButton_CORstep2.setChecked(True)
 
         #### from tomostream.py, nikitinvv git, micha
         # pva type channel that contains projection and metadata
@@ -237,6 +243,11 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
 
         else:
             self.reconstruct()
+        return
+
+    def COR_step(self, step):
+        self.COR.setSingleStep(step)
+        self.COR_step_value = step
         return
 
     def buttons_deactivate_all(self):
@@ -630,7 +641,8 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         # print('AUTO-CENTER:', center + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size))
 
         # reconstruct COR-batch
-        shifts = numpy.linspace(-((self.pre_reco - 1) / 4), ((self.pre_reco - 1) / 4),
+
+        shifts = numpy.linspace(-((self.pre_reco - 1) * self.COR_step_value / 2), ((self.pre_reco - 1) * self.COR_step_value / 2),
                                 num=self.pre_reco)  # z.B. -5 up to +5 Pixel => pre_reco = 21; -31.5 up to +31.5 => pre_reco = 127
         self.batch_CORs = shifts + self.center_list[0]
         print('batch CORs ', self.batch_CORs)
@@ -646,11 +658,13 @@ class On_the_fly_CT_tester(Ui_on_the_fly_Window, Q_on_the_fly_Window):
         if self.algorithm_list.currentText() == 'FBP_CUDA':
             options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
             self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=self.batch_CORs, algorithm=tomopy.astra,
-                                  options=options)
+                                  options=options, nchunk=1)
         else:
             self.recon_stack = tomopy.recon(extended_sinos_vol, new_list, center=numpy.array(self.batch_CORs, dtype='float32'),
                                   algorithm=self.algorithm_list.currentText(),
-                                  filter_name=self.filter_list.currentText())
+                                  filter_name=self.filter_list.currentText(),nchunk=1)
+
+
 
 
 

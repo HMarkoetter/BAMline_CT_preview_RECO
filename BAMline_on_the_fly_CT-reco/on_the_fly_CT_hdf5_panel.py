@@ -28,6 +28,7 @@ ANGLE_DATASET_CANDIDATES = (
     'SAMPLE_MICOS_W2',
     'SAMPLE_HUBER_W',
     'SAMPLE_W',
+    'SAMPLE_MICOS_piezos'
 )
 
 #Install ImageJ-PlugIn: EPICS AreaDetector NTNDA-Viewer, look for the channel specified here under channel_name, consider multiple users on servers!!!
