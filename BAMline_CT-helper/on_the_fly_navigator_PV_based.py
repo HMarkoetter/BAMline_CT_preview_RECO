@@ -1,22 +1,15 @@
-from os import wait
-
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
-from PIL import Image
-import h5py
 import tomopy
 import math
-import time
 import os
-import csv
 import threading
 import cv2                                      #to install package with pycharm search for "opencv-python"
-from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
 import epics
-import matplotlib.pyplot as plt
-#import Image
+import csv
+import time
 
 
 
@@ -30,16 +23,8 @@ channel_name = 'BAMline:Navigator'
 channel_name_rec = 'BAMline:NavigatorReco'
 channel_name_proj = 'BAMline:NavigatorProj'
 
-#standard_path = "C:/temp/HDF5-Reading/220130_1734_604_J1_anode_half_cell_in-situ_Z30_Y5430_15000eV_1p44um_500ms/" # '/mnt/raid/CT/2022/'
-standard_path = r'C:/delete/reg_data/18_230606_2044_AlTi_F_Ref_tomo___Z25_Y6500_25000eV_10x_400ms'
-
-Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window = loadUiType('on_the_fly_navigator.ui')  # connect to the GUI for the program
-
-#plt.ion()
-#fig,(ax,ax2) = plt.subplots(2,1)
-#imgplotted = ax.imshow(numpy.zeros((6000,2560)),cmap='gray',vmin=0,vmax=16384)
-#imgplotted = ax.imshow(numpy.zeros((720,2560)),cmap='gray',vmin=0,vmax=65535)
-#angles, = ax2.plot(0,0,'o',color='red', )
+ui_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'on_the_fly_navigator.ui')
+Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window = loadUiType(ui_path)
 
 class AngularStatusWidget(QtWidgets.QWidget):
     projection_received = QtCore.pyqtSignal(float, bool)
@@ -77,6 +62,15 @@ class AngularStatusWidget(QtWidgets.QWidget):
 
     def mark_stable_complete(self):
         self.stable_complete.emit()
+
+    @QtCore.pyqtSlot(int, int)
+    def set_counts(self, sector_count, projection_count):
+        self.arc_count = min(72, max(12, int(sector_count)))
+        self.projection_count = max(1, int(projection_count))
+        self.arcs = numpy.zeros(self.arc_count, dtype=numpy.uint8)
+        self.selected_projection %= self.projection_count
+        self.complete = False
+        self.paint_pending = True
 
     @QtCore.pyqtSlot(float, bool)
     def _record_projection(self, angle, moving):
@@ -252,15 +246,24 @@ class AngularStatusWidget(QtWidgets.QWidget):
         painter.setBrush(QtGui.QColor('#ffffff'))
         painter.drawEllipse(selection_endpoint, 4, 4)
 
-
-
 class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_Window):
+    rotation_state_received = QtCore.pyqtSignal(object)
+    distance_received = QtCore.pyqtSignal(object)
+    acquisition_config_changed = QtCore.pyqtSignal(int, int, int, int)
+    refresh_ui_requested = QtCore.pyqtSignal()
 
 
     def __init__(self):
         super(OnTheFlyNavigator, self).__init__()
         self.setupUi(self)
         self.setWindowTitle('On-the-fly Navigator')
+        self.rotation_state_received.connect(self._apply_rotation_state)
+        self.distance_received.connect(self._apply_distance)
+        self.acquisition_config_changed.connect(self._apply_acquisition_config_ui)
+        self.refresh_ui_requested.connect(self.read_parameter)
+        self.start_rotate.setText('Checking rotation...')
+        self.start_rotate.setEnabled(False)
+        self.rotation_running = False
 
 
         # create pva type pv for reconstruction by copying metadata from the data pv, but replacing the sizes
@@ -304,29 +307,25 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.omega_pv = epics.PV("acsMotion:m2.RBV")
         self.starting_angle = self.omega_pv.get()
-        self.jogF_pv = epics.PV("acsMotion:m2.JOGF")
-        self.jofvelo_pv = epics.PV("acsMotion:m2.JVEL")
-        self.omega_stop_pv = epics.PV("acsMotion:m2.STOP")
+        self.jogF_pv = epics.PV("acsMotion:m2.JOGF", auto_monitor=True)
         self.start_rotate.clicked.connect(self.rotate)
+        self.add_table_button.clicked.connect(self.add_to_table)
+        self.save_table_button.clicked.connect(self.save_table)
 
         self.piezo45_pv = epics.PV("MCS2Hex:CTm2.RBV")
         self.piezo135_pv = epics.PV("MCS2Hex:CTm1.RBV")
-        self.energy_pv = epics.PV("Energ:25000007rbv")
-        self.distance_pv = epics.PV("faulhaber:m1.RBV")
+        self.distance_pv = epics.PV("faulhaber:m1.RBV", auto_monitor=True)
         self.lens_pv = epics.PV("OMS58:25009007_MnuAct.SVAL")
-        self.exp_time_pv =epics.PV("PCOEdge:cam1:AcquirePeriod_RBV")
-        self.W_velocity_pv = epics.PV("acsMotion:m2.VELO")
+        self.exp_time_pv = epics.PV("PCOEdge:cam1:AcquirePeriod_RBV", auto_monitor=True)
+        self.W_velocity_pv = epics.PV("acsMotion:m2.VELO", auto_monitor=True)
 
-        pv_cam_exp = epics.PV("PCOEdge:cam1:AcquireTime")
-        pv_cam_period = epics.PV("PCOEdge:cam1:AcquirePeriod")
+        self.sizeX_pv = epics.PV("PCOEdge:ROI1:ArraySizeX_RBV", auto_monitor=True)
+        self.sizeY_pv = epics.PV("PCOEdge:ROI1:ArraySizeY_RBV", auto_monitor=True)
+        self.binningx_pv = epics.PV("PCOEdge:ROI1:BinX_RBV", auto_monitor=True)
+        self.binningy_pv = epics.PV("PCOEdge:ROI1:BinY_RBV", auto_monitor=True)
 
-        self.sizeX_pv = epics.PV("PCOEdge:ROI1:ArraySizeX_RBV")
-        self.sizeY_pv = epics.PV("PCOEdge:ROI1:ArraySizeY_RBV")
-        self.binningx_pv = epics.PV("PCOEdge:ROI1:BinX_RBV")
-        self.binningy_pv = epics.PV("PCOEdge:ROI1:BinY_RBV")
-
-        self.full_sizeX_pv = epics.PV("PCOEdge:ROI2:ArraySizeX_RBV")
-        self.full_sizeY_pv = epics.PV("PCOEdge:ROI2:ArraySizeY_RBV")
+        self.full_sizeX_pv = epics.PV("PCOEdge:ROI2:ArraySizeX_RBV", auto_monitor=True)
+        self.full_sizeY_pv = epics.PV("PCOEdge:ROI2:ArraySizeY_RBV", auto_monitor=True)
         self.proj_size_x = int(self.full_sizeX_pv.get())
         self.proj_size_y = int(self.full_sizeY_pv.get())
 
@@ -357,7 +356,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.stable_projection_count = 0
         self.last_lens = None
 
-        self.binningx,self.binningy = self.binningx_pv.get(),self.binningy_pv.get()
+        self.binningx, self.binningy = self.binningx_pv.get(), self.binningy_pv.get()
         self.binning.setValue(self.binningx)
 
         self.camera_acquire_pv = epics.PV("PCOEdge:cam1:Acquire")
@@ -365,19 +364,15 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.camera_acquireperiod_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
 
 
-        #self.sizeX, self.sizeY = round(self.sizeX_pv.get()/self.binningx), round(self.sizeY_pv.get()/self.binningy)
-        #self.sizeX, self.sizeY = int(self.sizeX_pv.get()/self.binningx_pv.get()), int(self.sizeY_pv.get()/self.binningy_pv.get())
         self.sizeX, self.sizeY = int(self.sizeX_pv.get()), int(self.sizeY_pv.get())
 
         self.ringbuffer_exists = 0
 
-        if self.W_velocity_pv.get() != 0:
-            print('velocity: ', self.W_velocity_pv.get(), '     exp time: ', self.exp_time_pv.get(), '      size X: ', self.sizeX_pv.get())
-            self.ringbuffer_size = (
-            round(360 / (self.W_velocity_pv.get() * self.exp_time_pv.get())), 1, self.sizeX_pv.get())
-            print('ringbuffer_size', self.ringbuffer_size)
-        else:
-            print('No rotation detected!')
+        initial_config = self._read_acquisition_config()
+        if initial_config is None:
+            raise RuntimeError('Acquisition PVs are unavailable or contain invalid values')
+        self._set_acquisition_config(initial_config)
+        self.acquisition_snapshot = initial_config
 
         self.ringbuffer_projection_size = int(math.ceil(self.ringbuffer_size[0] / 10))
         old_dial = self.dial
@@ -403,6 +398,17 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.COR_10x_flag = False
         self.COR_20x_flag = False
 
+        self.lens_config = {
+            '2x': (3.6, self.COR_1, self.spinBox_ruler_grid_1, 'COR_2x_flag'),
+            '5x': (1.44, self.COR_2, self.spinBox_ruler_grid_2, 'COR_5x_flag'),
+            '10x': (0.72, self.COR_3, self.spinBox_ruler_grid_3, 'COR_10x_flag'),
+            '20x': (0.36, self.COR_4, self.spinBox_ruler_grid_4, 'COR_20x_flag'),
+        }
+        for lens_name, (_, _, ruler_control, _) in self.lens_config.items():
+            ruler_control.valueChanged.connect(
+                lambda value, lens=lens_name: self._set_piezo_step(lens, value)
+            )
+
         self.update_pixel_size()
 
         self.i = 0
@@ -410,59 +416,161 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
         self.proj_pv = epics.PV("PCOEdge:image2:ArrayData", auto_monitor=True)
 
-        self.pv_rec['dimension'] = [
-             {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
-             {'size': int(self.ringbuffer_size[0]), 'fullSize': int(self.ringbuffer_size[0]), 'binning': 1}]
+        self.roi1_minY_pv = epics.PV("PCOEdge:ROI1:MinY_RBV")
+        self.roi2_biny_pv = epics.PV("PCOEdge:ROI2:BinY_RBV")
+        self.roi1_minY = self.roi1_minY_pv.get()
+        self.roi2_biny = self.roi2_biny_pv.get()
 
-        self.proj_rec['dimension'] = [
-             {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
-             {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}]
-        self.projection = self.proj_pv.get()
-
-        self.roi1_minY = epics.PV("PCOEdge:ROI1:MinY_RBV").get()
-        self.roi2_biny = epics.PV("PCOEdge:ROI2:BinY_RBV").get()
-
-        self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.starting_omega_pv = self.omega_pv.get()
-        self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
-        self.ringbuffer_projection = numpy.zeros(
-            (self.ringbuffer_projection_size, self.proj_size_y, self.proj_size_x),
-            dtype=numpy.float32,
-        )
-        self.projection_valid = numpy.zeros(self.ringbuffer_projection_size, dtype=bool)
         self.projection_lock = threading.Lock()
         self.dial.selection_changed.connect(self.send_projection)
-
-        self.ringbuffer_exists = 1
-        print('ringbuffer created with size: ', self.ringbuffer.shape)
-
-        self.sino_chopped = numpy.zeros((int(self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
+        self._allocate_live_buffers()
 
         self.ruler_grid_line_thickness = 1
         self.rotation_offset = 45 #still under question
         self.label_x = 'Piezo 45 [um]'
         self.label_y = 'Piezo 135 [um]'
 
-        self.N = int(self.ringbuffer_size[0])
-        self.start_rotate.setEnabled(True)
+        self.ui_size_x = self.sizeX
+        self.jogF_pv.add_callback(self._rotation_pv_callback, run_now=True)
+        self.distance_pv.add_callback(self._distance_pv_callback, run_now=True)
         self.image_pv.add_callback(self.update)
 
+    def _rotation_pv_callback(self, value=None, **kwargs):
+        self.rotation_state_received.emit(value)
+
+    def _distance_pv_callback(self, value=None, **kwargs):
+        self.distance_received.emit(value)
+
+    @QtCore.pyqtSlot(object)
+    def _apply_distance(self, value):
+        if value is None:
+            self.doubleSpinBox_distance_2.clear()
+            return
+        try:
+            self.doubleSpinBox_distance_2.setValue(float(value))
+        except (TypeError, ValueError, OverflowError):
+            self.doubleSpinBox_distance_2.clear()
+
+    @QtCore.pyqtSlot(object)
+    def _apply_rotation_state(self, value):
+        if value is None:
+            self.rotation_running = False
+            self.start_rotate.setText('Rotation unavailable')
+            self.start_rotate.setEnabled(False)
+            return
+
+        self.rotation_running = bool(round(float(value)))
+        self.start_rotate.setText('STOP' if self.rotation_running else 'Start endless rotation')
+        self.start_rotate.setEnabled(True)
+
+    def _put_checked(self, pv, value):
+        result = pv.put(value)
+        time.sleep(0.5)
+        if result != 1:
+            raise RuntimeError('Could not write {} to {}'.format(value, pv.pvname))
+
+    def _refresh_rotation_state(self):
+        self.rotation_state_received.emit(self.jogF_pv.get(use_monitor=True))
+
     def rotate(self):
-        self.rotate_status = self.jogF_pv.get()
-        if self.rotate_status == 0:
-            self.camera_acquire_pv.put(0)
-            time.sleep(2)
-            self.camera_acquiretime_pv.put(0.0175)
-            time.sleep(0.5)
-            self.camera_acquireperiod_pv.put(0.02)
-            time.sleep(0.1)
-            self.camera_acquire_pv.put(1)
-            self.jogF_pv.put(1)
-            self.start_rotate.setText('STOP')
+        print('rotate function called')
+        rotate_status = self.jogF_pv.get(use_monitor=True)
+        print('rotate_status {}'.format(rotate_status))
+        if rotate_status is None:
+            self._apply_rotation_state(None)
+            return
+
+        self.start_rotate.setEnabled(False)
+        try:
+            if bool(round(float(rotate_status))):
+                self.start_rotate.setText('Stopping...')
+                self._put_checked(self.jogF_pv, 0)
+            else:
+                self.start_rotate.setText('Starting...')
+                self._put_checked(self.camera_acquire_pv, 0)
+                time.sleep(0.1)
+                self._put_checked(self.camera_acquiretime_pv, 0.0175)
+                time.sleep(0.1)
+                self._put_checked(self.camera_acquireperiod_pv, 0.02)
+                time.sleep(0.1)
+                self._put_checked(self.camera_acquire_pv, 1)
+
+                starting_angle = self.omega_pv.get()
+                if starting_angle is not None:
+                    self.starting_angle = starting_angle
+                    self.starting_omega_pv = starting_angle
+                self._put_checked(self.jogF_pv, 1)
+        except (RuntimeError, TypeError, ValueError) as error:
+            print('Could not change rotation state:', error)
+        finally:
+            QtCore.QTimer.singleShot(500, self._refresh_rotation_state)
+
+    def add_to_table(self):
+        row = self.positions_table.rowCount()
+        self.positions_table.insertRow(row)
+
+        pvs = [
+            "OMS58:25008001.RBV",
+            "MCS2Hex:CTm2.RBV",
+            "MCS2Hex:CTm1.RBV",
+            "faulhaber:m1.RBV",
+        ]
+
+        for column, pv_name in enumerate(pvs):
+            value = epics.PV(pv_name).get()
+            self.positions_table.setItem(
+                row,
+                column,
+                QtWidgets.QTableWidgetItem(str(value))
+            )
+
+    def delete_selected_rows(self):
+        rows = sorted(
+            {index.row() for index in self.positions_table.selectedIndexes()},
+            reverse=True
+        )
+
+        for row in rows:
+            self.positions_table.removeRow(row)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Delete:
+            self.delete_selected_rows()
         else:
-            self.jogF_pv.put(0)
-            self.start_rotate.setText('Start endless rotation')
-            self.starting_omega_pv = self.omega_pv.get()
+            super().keyPressEvent(event)
+
+    def save_table(self):
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save Table",
+            "",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if not filename:
+            return
+
+        if not filename.lower().endswith(".csv"):
+            filename += ".csv"
+
+        with open(filename, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile,delimiter = ';', quotechar = ' ')
+
+            # Write column headers
+            headers = []
+            for col in range(self.positions_table.columnCount()):
+                item = self.positions_table.horizontalHeaderItem(col)
+                headers.append(item.text() if item is not None else "")
+            writer.writerow(headers)
+
+            # Write table data
+            for row in range(self.positions_table.rowCount()):
+                data = []
+                for col in range(self.positions_table.columnCount()):
+                    item = self.positions_table.item(row, col)
+                    data.append(item.text() if item is not None else "")
+                writer.writerow(data)
 
     def dashed_vertical_line(self,img, y, x0, x1, color, stroke=5, gap=5):
         stride = stroke + gap
@@ -484,9 +592,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.dashed_vertical_line(img=self.projection,y= int(self.roi1_minY/self.roi2_biny), x0=0,x1= self.projection.shape[1]-1, color= self.ruler_grid_color)
 
-        print('olalal')
-        print(int(self.roi1_minY/self.roi2_biny))
-
         self.proj_rec['value'] = (
             {'floatValue': self.projection.flatten().astype(numpy.float32)},
         )
@@ -501,9 +606,123 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
     def put_values(self, pv, value):
         pv.put(value)
 
-    def check_changes(self):
-        if self.i==0:
-            return
+    def _read_acquisition_config(self):
+        values = {
+            'period': self.exp_time_pv.get(use_monitor=True),
+            'velocity': self.W_velocity_pv.get(use_monitor=True),
+            'size_x': self.sizeX_pv.get(use_monitor=True),
+            'size_y': self.sizeY_pv.get(use_monitor=True),
+            'bin_x': self.binningx_pv.get(use_monitor=True),
+            'bin_y': self.binningy_pv.get(use_monitor=True),
+            'proj_x': self.full_sizeX_pv.get(use_monitor=True),
+            'proj_y': self.full_sizeY_pv.get(use_monitor=True),
+        }
+        if any(value is None for value in values.values()):
+            return None
+
+        try:
+            config = {
+                'period': round(float(values['period']), 9),
+                'velocity': round(abs(float(values['velocity'])), 9),
+                'size_x': int(values['size_x']),
+                'size_y': int(values['size_y']),
+                'bin_x': int(values['bin_x']),
+                'bin_y': int(values['bin_y']),
+                'proj_x': int(values['proj_x']),
+                'proj_y': int(values['proj_y']),
+            }
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+        if (
+            config['period'] <= 0
+            or config['velocity'] <= 0
+            or min(config['size_x'], config['size_y'], config['proj_x'], config['proj_y']) <= 0
+            or min(config['bin_x'], config['bin_y']) <= 0
+        ):
+            return None
+        return config
+
+    def _set_acquisition_config(self, config):
+        self.sizeX = config['size_x']
+        self.sizeY = config['size_y']
+        self.binningx = config['bin_x']
+        self.binningy = config['bin_y']
+        self.proj_size_x = config['proj_x']
+        self.proj_size_y = config['proj_y']
+        projection_count = max(2, round(360.0 / (config['velocity'] * config['period'])))
+        self.ringbuffer_size = (projection_count, 1, self.sizeX)
+        self.ringbuffer_projection_size = int(math.ceil(projection_count / 10))
+
+    def _allocate_live_buffers(self):
+        self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
+        self.sino_chopped = numpy.zeros(
+            (int(self.ringbuffer_size[0] / 2), 1, self.ringbuffer_size[2]),
+            dtype='H',
+        )
+        with self.projection_lock:
+            self.ringbuffer_projection = numpy.zeros(
+                (self.ringbuffer_projection_size, self.proj_size_y, self.proj_size_x),
+                dtype=numpy.float32,
+            )
+            self.projection_valid = numpy.zeros(self.ringbuffer_projection_size, dtype=bool)
+
+        self.pv_rec['dimension'] = [
+            {'size': self.sizeX, 'fullSize': self.sizeX, 'binning': 1},
+            {'size': int(self.ringbuffer_size[0]), 'fullSize': int(self.ringbuffer_size[0]), 'binning': 1},
+        ]
+        self.proj_rec['dimension'] = [
+            {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
+            {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1},
+        ]
+        self.ringbuffer_exists = 1
+        print('ringbuffers created:', self.ringbuffer.shape, self.ringbuffer_projection.shape)
+
+    def check_parameters(self):
+        config = self._read_acquisition_config()
+        if config is None or config == self.acquisition_snapshot:
+            return False
+
+        previous_size_x = self.sizeX
+        print('Acquisition parameters changed:', self.acquisition_snapshot, '->', config)
+        self._set_acquisition_config(config)
+        self._allocate_live_buffers()
+        self.acquisition_snapshot = config
+        self.i = 0
+
+        current_angle = self.omega_pv.get(use_monitor=True)
+        if current_angle is not None:
+            self.starting_angle = current_angle
+            self.starting_omega_pv = current_angle
+
+        roi1_min_y = self.roi1_minY_pv.get(use_monitor=True)
+        roi2_bin_y = self.roi2_biny_pv.get(use_monitor=True)
+        if roi1_min_y is not None:
+            self.roi1_minY = roi1_min_y
+        if roi2_bin_y is not None:
+            self.roi2_biny = roi2_bin_y
+
+        self.parameters_have_changed()
+        self.acquisition_config_changed.emit(
+            int(self.ringbuffer_size[0]),
+            self.ringbuffer_projection_size,
+            self.sizeX,
+            self.binningx,
+        )
+        return previous_size_x != self.sizeX
+
+    @QtCore.pyqtSlot(int, int, int, int)
+    def _apply_acquisition_config_ui(self, projection_count, selector_count, size_x, binning_x):
+        self.dial.set_counts(projection_count, selector_count)
+        self.binning.setValue(binning_x)
+
+        if size_x != self.ui_size_x:
+            center_shift = (size_x - self.ui_size_x) / 2.0
+            for cor_control in (self.COR_1, self.COR_2, self.COR_3, self.COR_4):
+                cor_control.setValue(cor_control.value() + center_shift)
+            self.ui_size_x = size_x
+
+        self.update_pixel_size()
 
 
     def parameters_have_changed(self, moving=False):
@@ -539,28 +758,27 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             print("Could not process DMOV monitor:", pvname, value, error)
 
 
-    def create_ringbuffer(self):
-        self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
-        self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
-        self.ringbuffer_projection_size = int(math.ceil(self.ringbuffer_size[0] / 10))
-        self.ringbuffer_projection = numpy.zeros(
-            (self.ringbuffer_projection_size, self.proj_size_y, self.proj_size_x),
-            dtype=numpy.float32,
-        )
-        self.projection_valid = numpy.zeros(self.ringbuffer_projection_size, dtype=bool)
-
-        self.proj_rec['dimension'] = [
-            {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
-            {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}
-        ]
-
-        self.ringbuffer_exists = 1
-        print('ringbuffer created with size: ', self.ringbuffer.shape)
-
-        self.sino_chopped = numpy.zeros(((self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
-
     def update(self, **kwargs):
+        # Camera acquisition may remain active while the rotation axis is stopped.
+        # Those frames have no new angle and must not enter the tomography buffers.
+        if not self.rotation_running:
+            return
+
         rawimgflat = self.image_pv.get()
+        if rawimgflat is None:
+            return
+
+        if (self.i % 25) == 0:
+            self.check_parameters()
+
+        rawimgflat = numpy.asarray(rawimgflat)
+        expected_image_size = self.sizeX * self.sizeY
+        if rawimgflat.size != expected_image_size:
+            self.check_parameters()
+            expected_image_size = self.sizeX * self.sizeY
+            if rawimgflat.size != expected_image_size:
+                print('Image size mismatch:', rawimgflat.size, 'expected:', expected_image_size)
+                return
 
         self.ringbuffer[self.i % self.ringbuffer_size[0],:,:] = rawimgflat[-(round(self.sizeY / 2)) * self.sizeX: -(round(self.sizeY / 2) -1) * self.sizeX]
 
@@ -616,12 +834,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                         expected_size,
                     )
 
-        #print('omega to initial omega difference', self.current_omega_pv-self.starting_omega_pv)
-        #self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = self.current_omega_pv
-
-        #print('Micos_W Ringbuffer', self.current_omega_pv)
-        #, self.ringbuffer_Micos_W)
-        #self.progressBar.setValue(int(self.omega_pv.get() % 360))
         sinogram = self.ringbuffer[:, 0, :]
         self.pv_rec['dimension'] = [
             {'size': int(sinogram.shape[1]), 'fullSize': int(sinogram.shape[1]), 'binning': 1},
@@ -630,7 +842,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.pv_rec['value'] = (
             {'floatValue': sinogram.flatten().astype(numpy.float32)},
         )
-        print(self.current_omega_pv, 'current omega')
+        #print(self.current_omega_pv, 'current omega')
         if (self.i % 5) == 0:
             print('FEEDING IMAGE')
             sinogram = self.ringbuffer[:,0,:]
@@ -638,10 +850,10 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
             #angles.set_data(float(self.omega_pv.get()) % 360, self.i)
             #fig.canvas.flush_events()
             #self.slice_show = sinogram.astype(numpy.float32)
-            print('before read param')
+            #print('before read param')
 
-            self.read_parameter()
-            print('after read param')
+            self.refresh_ui_requested.emit()
+            #print('after read param')
 
             position = self.i % self.ringbuffer_size[0]
             print('position', position)
@@ -705,97 +917,14 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
                 self.parameters_changed = False
                 print('Stable reconstruction published')
 
-        print('i', self.i, 'Modulus:', self.i % self.ringbuffer_size[0])
+        #print('i', self.i, 'Modulus:', self.i % self.ringbuffer_size[0])
         self.i = self.i +1
 
-    def cut_path_name(self):
-        print('function cut_path_name')
-        #analyse and cut the path in pieces and get relevant information from raw-file
-        htap = self.path_klick[::-1]
-        self.path_in = self.path_klick[0: len(htap) - htap.find('/') - 1: 1]
-        ni_htap = self.path_in[::-1]
-        self.last_folder = self.path_in[len(ni_htap) - ni_htap.find('/') - 1 :  :1]
-        self.namepart = self.path_klick[len(htap) - htap.find('/') - 1: len(htap) - htap.find('.') - 1: 1]
-        self.filetype = self.path_klick[len(htap) - htap.find('.') - 1: len(htap):1]
-        print('chopped path: ',self.path_in, '  ', self.last_folder,'  ', self.namepart,'  ', self.filetype)
-        self.Sample.setText(self.path_klick)
-
-        #link a volume to the hdf-file
-        self.f = h5py.File(self.path_klick, 'r', libver='latest', swmr=True)
-        self.vol_proxy = self.f['/entry/data/data']
-        #self.line_proxy = self.f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        self.line_proxy = self.f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W1']
-
-        print('raw data volume size: ', self.vol_proxy.shape)
-
-        #self.prefill_parameter()
-        #print('try to go to function check_180 ')
-        self.check_180()    #this will end in check_auto_update
-
-
-
-#===========================================================
-    def buttons_activate_reco(self):
-        print('function buttons_activate_reco')
-
-
-    def prefill_parameter(self):
-        print('function prefill_parameter')
-        #self.prefill_slice_number()
-        #self.get_rotation_angles()
-        #self.find_rotation_start()
-        #self.prefill_CORs()
-        #self.prefill_pixel_size()
-        #self.prefill_binning()
-        #self.prefill_energy()
-        #self.prefill_distance()
-
-
-    def check_180(self):
-        print('function check_180')
-        while self.graph[-1] < 180:
-            self.get_rotation_angles()
-            print('waiting for sufficient data...', self.graph[-1])
-            time.sleep(1)
-        print("Enough data to proceed. angle:", self.graph[-1])
-        self.check_auto_update()
-
-    def check_auto_update(self):    #AUTO UPDATE ON/OFF?
-        print('function check_auto_update')
-        i=0
-        while i < 1:
-            j=0
-            while self.auto_update.isChecked() == False:
-                print('waiting for auto update...')
-                QtWidgets.QApplication.processEvents()
-                time.sleep(5)
-            print('auto update requested')
-            while self.auto_update.isChecked() == True:
-                j = j + 1
-                time_begin = time.time()
-                self.read_parameter()
-                time_read_parameter = time.time()
-                #print('time_read_parameter',time_read_parameter - time_begin)
-                QtWidgets.QApplication.processEvents()
-                self.load_data()
-                time_load_data = time.time()
-                #print('time_load_data', time_load_data - time_begin)
-                QtWidgets.QApplication.processEvents()
-                self.reconstruct()
-                time_reconstruct = time.time()
-                print('iteration:', j, '  time:', round((time_reconstruct - time_begin)*1000)/1000, 'fps:', round(1/(time_reconstruct - time_begin)))
-                QtWidgets.QApplication.processEvents()
-
     def read_parameter(self):
-        #self.get_rotation_angles()
         self.update_pixel_size()
-        #self.prefill_binning()
-        #self.prefill_energy()
-        #self.prefill_distance()
 
 
     def buttons_deactivate_all(self):
-        #self.slice_number.setEnabled(False)
         self.COR_1.setEnabled(False)
         self.COR_2.setEnabled(False)
         self.COR_3.setEnabled(False)
@@ -806,27 +935,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.COR_10x_flag = False
         self.COR_20x_flag = False
 
-    def buttons_activate_load(self):
-        print('function buttons_activate_load')
-
-
-    def prefill_slice_number(self):  #get the image dimensions and prefill slice number
-        self.slice_number.setMaximum(self.vol_proxy.shape[1]-1)
-        self.slice_number.setMinimum(0)
-        time.sleep(1)
-        self.slice_number.setValue(round(self.vol_proxy.shape[1]/2))    # be careful with an infinite loop when setValue actually triggers valueChanged. Therefore, auto_update starts off
-        print('Function prefill_slice_number: Set middle height as slice number:  ', self.slice_number.value())
-        self.slice_number.setEnabled(True)
-
-    def get_rotation_angles(self):
-        #self.f = h5py.File(self.path_klick, 'r',libver='latest', swmr=True)
-        #self.line_proxy = self.f['/entry/instrument/NDAttributes/CT_MICOS_W']
-        #self.line_proxy = self.f['/entry/instrument/NDAttributes/SAMPLE_MICOS_W2']
-        self.line_proxy.id.refresh()
-        self.graph = numpy.array(self.line_proxy)
-        print('Function get_rotation_angles: Found number of angles:  ', self.graph.shape[0], '      current angle: ', self.graph[-1])
-
-
     def prefill_CORs(self):
 
         print('preset CORs to half image size')
@@ -835,149 +943,40 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.COR_3.setValue(round(self.sizeX_pv.get() / 2))
         self.COR_4.setValue(round(self.sizeX_pv.get() / 2))
 
-    def prefill_pixel_size(self):
-
-        if '/entry/instrument/NDAttributes/CT_Pixelsize' in self.f:
-            self.pixel_proxy = self.f['/entry/instrument/NDAttributes/CT_Pixelsize']
-            self.pixel_size.setValue(self.pixel_proxy[-1])
-            #print('Function prefill_pixel_size: ', self.pixel_proxy[-1])
-        else:
-            self.pixel_size.setValue(1)
-
     def update_pixel_size(self):
         current_lens = self.lens_pv.get()
+        if current_lens not in self.lens_config:
+            self.buttons_deactivate_all()
+            print('Unknown or unavailable lens:', current_lens)
+            return
 
-        if self.last_lens is None:
-            self.last_lens = current_lens
-        elif current_lens != self.last_lens:
+        lens_changed = current_lens != self.last_lens
+        if self.last_lens is not None and lens_changed:
             print('Optics changed:', self.last_lens, '->', current_lens)
-            self.last_lens = current_lens
-
             piezo_is_moving = any(
                 dmov == 0 for dmov in self.piezo_dmov.values()
             )
             self.parameters_have_changed(moving=piezo_is_moving)
 
-        if current_lens == '2x':
-            self.pixel_size_set = 3.6
-            if self.COR_2x_flag == False:
-                self.buttons_deactivate_all()
-                self.COR_1.setEnabled(True)
-                self.COR_2x_flag = True
-                self.COR_5x_flag = False
-                self.COR_10x_flag = False
-                self.COR_20x_flag = False
-
-            self.piezo45_pv_value.put(self.spinBox_ruler_grid_1.value() / 1000)
-            self.piezo135_pv_value.put(self.spinBox_ruler_grid_1.value() / 1000)
-
-            self.COR = self.COR_1.value()
-            self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
-            self.pixel_size.setValue(self.pixel_size_set)
-        elif current_lens == '5x':
-            self.pixel_size_set = 1.44
-            if self.COR_5x_flag == False:
-                self.buttons_deactivate_all()
-                self.COR_2.setEnabled(True)
-                self.COR_5x_flag = True
-                self.COR_10x_flag = False
-                self.COR_20x_flag = False
-                self.COR_2x_flag = False
-
-            self.piezo45_pv_value.put(self.spinBox_ruler_grid_2.value() / 1000)
-            self.piezo135_pv_value.put(self.spinBox_ruler_grid_2.value() / 1000)
-
-            self.COR = self.COR_2.value()
-            self.spinBox_ruler_grid = self.spinBox_ruler_grid_2.value()
-            self.pixel_size.setValue(self.pixel_size_set)
-        elif current_lens == '10x':
-            self.pixel_size_set = 0.72
-            if self.COR_10x_flag == False:
-                self.buttons_deactivate_all()
-                self.COR_3.setEnabled(True)
-                self.COR_10x_flag = True
-                self.COR_20x_flag = False
-                self.COR_5x_flag = False
-                self.COR_2x_flag = False
-
-            self.piezo45_pv_value.put(self.spinBox_ruler_grid_3.value() / 1000)
-            self.piezo135_pv_value.put(self.spinBox_ruler_grid_3.value() / 1000)
-
-            self.COR = self.COR_3.value()
-            self.spinBox_ruler_grid = self.spinBox_ruler_grid_3.value()
-            self.pixel_size.setValue(self.pixel_size_set)
-        elif current_lens == '20x':
-            self.pixel_size_set = 0.36
-            if self.COR_20x_flag == False:
-                self.buttons_deactivate_all()
-                self.COR_4.setEnabled(True)
-                self.COR_20x_flag = True
-                self.COR_5x_flag = False
-                self.COR_2x_flag = False
-                self.COR_10x_flag = False
-
-            self.piezo45_pv_value.put(self.spinBox_ruler_grid_4.value() / 1000)
-            self.piezo135_pv_value.put(self.spinBox_ruler_grid_4.value() / 1000)
-
-            self.COR = self.COR_4.value()
-            self.spinBox_ruler_grid = self.spinBox_ruler_grid_4.value()
-            self.pixel_size.setValue(self.pixel_size_set)
-        else:
+        self.last_lens = current_lens
+        pixel_size, cor_control, ruler_control, active_flag = self.lens_config[current_lens]
+        if not getattr(self, active_flag):
             self.buttons_deactivate_all()
+            cor_control.setEnabled(True)
+            setattr(self, active_flag, True)
+            self._set_piezo_step(current_lens, ruler_control.value(), force=True)
 
-        print('pixel size: ', self.pixel_size_set)
+        self.pixel_size_set = pixel_size
+        self.COR = cor_control.value()
+        self.spinBox_ruler_grid = ruler_control.value()
+        self.pixel_size.setValue(pixel_size)
 
-    def prefill_binning(self):
-        if '/entry/instrument/NDAttributes/Binning_X' in self.f:
-            self.binning_proxy = self.f['/entry/instrument/NDAttributes/Binning_X']
-            self.binning.setValue(self.binning_proxy[-1])
-            print('Function prefill_binning: ', self.binning_proxy[-1])
-        else:
-            self.binning.setValue(1)
-            print('Function prefill_binning: Not found. Set to 1')
-
-    def prefill_energy(self):
-        #self.energy_pv.get()
-        self.doubleSpinBox_Energy_2.setValue(round(float(self.energy_pv.get()) * 100) / 100)
-        """
-        if '/entry/instrument/NDAttributes/DMM_Energy' in self.f:
-            self.energy_proxy = self.f['/entry/instrument/NDAttributes/DMM_Energy']
-            self.doubleSpinBox_Energy_2.setValue(round(self.energy_proxy[-1]*100)/100)
-            #print('Function prefill_energy:', round(self.energy_proxy[-1]*100)/100)
-        else:
-            self.doubleSpinBox_Energy_2.setValue(1)
-            #print('Function prefill_energy: Energy not found')
-        """
-
-    def prefill_distance(self):
-
-        self.doubleSpinBox_distance_2.setValue(round(float(self.distance_pv.get()) + 25))
-        """
-        if '/entry/instrument/NDAttributes/CT-Kamera-Z' in self.f:
-            self.distance_proxy = self.f['/entry/instrument/NDAttributes/CT-Kamera-Z']
-            self.doubleSpinBox_distance_2.setValue(round(self.distance_proxy[-1] + 25))
-            #print('Function prefill_distance:', round(self.distance_proxy[-1] + 25))
-        else:
-            self.doubleSpinBox_distance_2.setValue(0)
-            #print('Function prefill_distance: Not found. Set to 0')
-        """
-        QtWidgets.QApplication.processEvents()
-
-
-    def load_data(self):
-        self.f = h5py.File(self.path_klick, 'r', libver='latest', swmr=True)
-        self.w = self.graph
-
-        #prefill rotation-speed[°/img]        #Polynom fit for the angles
-        poly_coeff = numpy.polyfit(numpy.arange(len(self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ])), self.w[round((self.w.shape[0] + 1) /4) : round((self.w.shape[0] + 1) * 3/4) ], 1, rcond=None, full=False, w=None, cov=False)
-        self.speed_W = poly_coeff[0]
-        self.number_of_used_projections = round(180 / self.speed_W)
-
-        # load recent 180deg sino
-        self.vol_proxy = self.f['/entry/data/data']
-        Sino = self.vol_proxy[- self.number_of_used_projections : , self.slice_number.value(), :]
-        self.Norm = Sino
-
+    def _set_piezo_step(self, lens_name, value, force=False):
+        if not force and lens_name != self.last_lens:
+            return
+        step_size = value / 1000.0
+        self.piezo45_pv_value.put(step_size)
+        self.piezo135_pv_value.put(step_size)
 
     def add_ruler(self):
 
@@ -1003,183 +1002,65 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         # draws a circle with the detector size as diameter
         cv2.circle(self.slice, (round(self.slice.shape[1] / 2), round(self.slice.shape[1] / 2)), round(self.sizeX/2), self.ruler_grid_color, self.ruler_grid_line_thickness)
 
-        if self.grid_micrometer.isChecked() == True:
-            print('ADDING RULER MICROMETER')
+        # add label x
+        cv2.putText(self.slice, self.label_x, (
+        round(self.slice.shape[1] / 2) + 20, round(self.ruler_grid_line_thickness) * 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
+                    thickness=self.ruler_grid_line_thickness)
 
-            # add label x
-            cv2.putText(self.slice, self.label_x, (
-            round(self.slice.shape[1] / 2) + 20, round(self.ruler_grid_line_thickness) * 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
-                        thickness=self.ruler_grid_line_thickness)
+        # add ruler +X
+        for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value() / 2),
+                       round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value()),
+                       round(self.spinBox_ruler_grid)):
 
-            # add ruler +X
-            for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value() / 2),
-                           round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value()),
-                           round(self.spinBox_ruler_grid)):
+            cv2.line(self.slice, (round(r / (self.binning.value() * self.pixel_size.value())), 0),
+                     (round(r / (self.pixel_size.value() * self.binning.value())), self.slice.shape[0]), self.ruler_grid_color, self.ruler_grid_line_thickness)
+            cv2.putText(self.slice, str(-(round(1000 * self.piezo_45_proxy/  5) * 5   +   round( r / 5) * 5   -   round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5)),
+                        (round(r / (self.pixel_size.value() * self.binning.value())) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
+                        self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
 
-                cv2.line(self.slice, (round(r / (self.binning.value() * self.pixel_size.value())), 0),
-                         (round(r / (self.pixel_size.value() * self.binning.value())), self.slice.shape[0]), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(-(round(1000 * self.piezo_45_proxy/  5) * 5   +   round( r / 5) * 5   -   round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5)),
-                            (round(r / (self.pixel_size.value() * self.binning.value())) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
-                            self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-
-            # add ruler -X
-            for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value() / 2), 0,
-                           -round(self.spinBox_ruler_grid)):
-                cv2.line(self.slice, (round(r / (self.pixel_size.value() * self.binning.value())), 0),
-                         (round(r / (self.pixel_size.value() * self.binning.value())), self.slice.shape[0]), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(-(round(1000 * self.piezo_45_proxy / 5) * 5  +  round(
-                    r  / 5) * 5  -  round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5)),
-                            (round(r / (self.pixel_size.value() * self.binning.value() )) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
-                            self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
+        # add ruler -X
+        for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value() / 2), 0,
+                       -round(self.spinBox_ruler_grid)):
+            cv2.line(self.slice, (round(r / (self.pixel_size.value() * self.binning.value())), 0),
+                     (round(r / (self.pixel_size.value() * self.binning.value())), self.slice.shape[0]), self.ruler_grid_color, self.ruler_grid_line_thickness)
+            cv2.putText(self.slice, str(-(round(1000 * self.piezo_45_proxy / 5) * 5  +  round(
+                r  / 5) * 5  -  round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5)),
+                        (round(r / (self.pixel_size.value() * self.binning.value() )) + 20, round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
+                        self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
 
 
-            # add label Y
-            cv2.putText(self.slice, self.label_y, (20, round(self.slice.shape[1] / 2) -40),
-                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
-                        thickness=self.ruler_grid_line_thickness)
+        # add label Y
+        cv2.putText(self.slice, self.label_y, (20, round(self.slice.shape[1] / 2) -40),
+                    cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
+                    thickness=self.ruler_grid_line_thickness)
 
-            # add ruler +Y
-            for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value() / 2),
-                           round(self.slice.shape[1] * self.pixel_size.value()* self.binning.value()),
-                           round(self.spinBox_ruler_grid)):
-                cv2.line(self.slice, (0, round(r / (self.pixel_size.value()* self.binning.value()))),
-                         (self.slice.shape[1], round(r / (self.pixel_size.value()* self.binning.value()))), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy / 5) * 5  +  round(
-                    r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
-                            (20, round(r / (self.pixel_size.value() * self.binning.value())) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
-                            self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
+        # add ruler +Y
+        for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value() / 2),
+                       round(self.slice.shape[1] * self.pixel_size.value()* self.binning.value()),
+                       round(self.spinBox_ruler_grid)):
+            cv2.line(self.slice, (0, round(r / (self.pixel_size.value()* self.binning.value()))),
+                     (self.slice.shape[1], round(r / (self.pixel_size.value()* self.binning.value()))), self.ruler_grid_color, self.ruler_grid_line_thickness)
+            cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy / 5) * 5  +  round(
+                r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
+                        (20, round(r / (self.pixel_size.value() * self.binning.value())) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
+                        self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
 
-            # add ruler -Y
-            for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value()/ 2), 0,
-                           -round(self.spinBox_ruler_grid)):
-                cv2.line(self.slice, (0, round(r / (self.pixel_size.value()* self.binning.value()))),
-                         (self.slice.shape[1], round(r / (self.pixel_size.value()* self.binning.value()))), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy / 5) * 5 + round(
-                    r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
-                            (20, round(r / (self.pixel_size.value()* self.binning.value())) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
-                            self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
+        # add ruler -Y
+        for r in range(round(self.slice.shape[1] * self.pixel_size.value() * self.binning.value()/ 2), 0,
+                       -round(self.spinBox_ruler_grid)):
+            cv2.line(self.slice, (0, round(r / (self.pixel_size.value()* self.binning.value()))),
+                     (self.slice.shape[1], round(r / (self.pixel_size.value()* self.binning.value()))), self.ruler_grid_color, self.ruler_grid_line_thickness)
+            cv2.putText(self.slice, str(round(1000 * self.piezo_135_proxy / 5) * 5 + round(
+                r / 5) * 5 - round(self.slice.shape[1] * (self.pixel_size.value() * self.binning.value() / 10)) * 5),
+                        (20, round(r / (self.pixel_size.value()* self.binning.value())) + round(self.ruler_grid_line_thickness)*20), cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness/2),
+                        self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
 
-
-        if self.grid_pixel.isChecked() == True:
-            print('ADDING PXL RULER')
-
-            #add label x
-            cv2.putText(self.slice, 'Pixel', (
-                round(self.slice.shape[1] / 2) + 20,
-                round(self.ruler_grid_line_thickness) * 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
-                        thickness=self.ruler_grid_line_thickness)
-
-            #add ruler +X
-
-            for r in range(round(self.slice.shape[1] / 2), self.slice.shape[1], round(self.spinBox_pixel_grid.value())):
-                print('drawing a line from ', r, 0, 'to ', r, self.slice.shape[1])
-                cv2.line(self.slice, (r,0),   (r,self.slice.shape[1]), self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-
-                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (r + 20, round(self.ruler_grid_line_thickness/2)*20), cv2.FONT_HERSHEY_SIMPLEX, self.ruler_grid_line_thickness/2, self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-
-            # add ruler -X
-            for r in range(round(self.slice.shape[1] / 2), 0, -round(self.spinBox_pixel_grid.value())):
-                #print(r)
-                cv2.line(self.slice, (r, 0),   (r, self.slice.shape[1]), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (r + 20, round(self.ruler_grid_line_thickness/2)*20), cv2.FONT_HERSHEY_SIMPLEX, self.ruler_grid_line_thickness/2, self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-
-
-            # add label Y
-            cv2.putText(self.slice, 'Pixel',
-                        (20, round(self.slice.shape[1] / 2) - 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, (self.ruler_grid_line_thickness / 2), self.ruler_grid_color,
-                        thickness=self.ruler_grid_line_thickness)
-
-            # add ruler +Y
-            for r in range(round(self.slice.shape[1] / 2), self.slice.shape[1], round(self.spinBox_pixel_grid.value())):
-                cv2.line(self.slice, (0, r), (self.slice.shape[1], r), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (20,r + round(self.ruler_grid_line_thickness/2)*20), cv2.FONT_HERSHEY_SIMPLEX, self.ruler_grid_line_thickness/2, self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-
-            # add ruler -Y
-            for r in range(round(self.slice.shape[1] / 2), 0, -round(self.spinBox_pixel_grid.value())):
-                cv2.line(self.slice, (0, r), (self.slice.shape[1], r), self.ruler_grid_color, self.ruler_grid_line_thickness)
-                cv2.putText(self.slice, str(round((r - (self.slice.shape[1] / 2)) / 5) * 5), (20,r + round(self.ruler_grid_line_thickness/2)*20), cv2.FONT_HERSHEY_SIMPLEX, self.ruler_grid_line_thickness/2, self.ruler_grid_color, thickness=self.ruler_grid_line_thickness)
-            print('DONE ADDING RULER')
         return self.slice
 
 
 
 
-    def reconstruct(self):
-        QtWidgets.QApplication.processEvents()
-
-        self.full_size = self.Norm.shape[1]
-        self.number_of_projections = self.Norm.shape[0]
-
-        self.number_of_used_projections = round(180 / self.speed_W)
-
-        # create list with all projection angles
-        new_list = (numpy.arange(self.number_of_used_projections) * self.speed_W + self.graph[-1] + self.rotation_offset) * math.pi / 180
-
-
-
-        if self.pixel_size.value() != 1:
-            if self.pixel_proxy[-1] == 3.61:
-                self.COR = self.COR_1.value()
-            elif self.pixel_proxy[-1] == 1.44:
-                self.COR = self.COR_2.value()
-            elif self.pixel_proxy[-1] == 0.72:
-                self.COR = self.COR_3.value()
-            elif self.pixel_proxy[-1] == 0.36:
-                self.COR = self.COR_4.value()
-            else:
-                self.COR = 50
-        else:
-            self.COR = self.COR_1.value()
-            print('Pixel Size unknown. Use COR_1')
-
-        center_list = [self.COR + round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size)] * (self.number_of_used_projections)
-
-        # create one sinogram in the form [z, y, x]
-        transposed_sinos = numpy.zeros((self.number_of_used_projections, 1, self.full_size), dtype=float)
-        transposed_sinos[:,0,:] = self.Norm[-self.number_of_used_projections : , : ]
-
-        #extend data with calculated parameter, compute logarithm, remove NaN-values
-        log_sinos = tomopy.minus_log(transposed_sinos)
-        log_sinos = numpy.nan_to_num(log_sinos, copy=True, nan=1.0, posinf=1.0, neginf=1.0)
-        extended_sinos = tomopy.misc.morph.pad(log_sinos, axis=2,
-                                               npad=round(self.extend_FOV_fixed_ImageJ_Stream * self.full_size),
-                                               mode='edge')
-
-        #reconstruct one slice
-
-        if self.GPU_CUDA.isChecked() == True:
-            options = {'proj_type': 'cuda', 'method': 'FBP_CUDA'}
-            slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm=tomopy.astra, options=options)
-        else:
-            slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm='gridrec', filter_name='shepp')
-
-
-        slices = tomopy.recon(extended_sinos, new_list, center=center_list, algorithm='gridrec', filter_name='shepp')
-        slices = slices[:,round(self.full_size/4):-round(self.full_size/4),round(self.full_size/4):-round(self.full_size/4)]
-        slices = tomopy.circ_mask(slices, axis=0, ratio=1.0,val=10)
-        slices = slices * (10000 / self.pixel_size.value())
-        self.slice = slices[0,:,:]   #reduce dimensions from 3 to 2
-
-        self.add_ruler()
-
-        # set image dimensions only for the first time or when scan-type was changed
-        if self.new == 1:
-            self.reco_rec['dimension'] = [
-                {'size': self.slice.shape[1], 'fullSize': self.slice.shape[1], 'binning': 1},
-                {'size': self.slice.shape[0], 'fullSize': self.slice.shape[0], 'binning': 1}]
-            self.new = 0
-
-        # write reconstruction result to the reconstruction PV
-        self.reco_rec['value'] = (
-            {'floatValue': self.slice.flatten().astype(numpy.float32)},
-        )
-
-
-#=======================================================================================================================
-#no idea why we need this, but it wouldn't work without it ;-)
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
