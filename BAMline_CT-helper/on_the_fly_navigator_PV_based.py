@@ -1,3 +1,5 @@
+from os import wait
+
 import numpy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
@@ -8,6 +10,7 @@ import math
 import time
 import os
 import csv
+import threading
 import cv2                                      #to install package with pycharm search for "opencv-python"
 from scipy.ndimage.filters import gaussian_filter, median_filter
 import pvaccess as pva                          #to install package with pycharm search for "pvapy"
@@ -42,16 +45,21 @@ class AngularStatusWidget(QtWidgets.QWidget):
     projection_received = QtCore.pyqtSignal(float, bool)
     history_reset = QtCore.pyqtSignal()
     stable_complete = QtCore.pyqtSignal()
+    selection_changed = QtCore.pyqtSignal(int)
 
-    def __init__(self, sector_count, parent=None):
+    def __init__(self, sector_count, projection_count, parent=None):
         super().__init__(parent)
         self.arc_count = min(72, max(12, int(sector_count)))
+        self.projection_count = max(1, int(projection_count))
         self.arcs = numpy.zeros(self.arc_count, dtype=numpy.uint8)
         self.current_angle = 0.0
+        self.selected_projection = 0
+        self.selection_drag_active = False
         self.complete = False
         self.paint_pending = True
         self.setMinimumSize(120, 120)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         self.projection_received.connect(self._record_projection)
         self.history_reset.connect(self._reset_history)
@@ -118,11 +126,81 @@ class AngularStatusWidget(QtWidgets.QWidget):
                 -round(-(position - start) * span * 16),
             )
 
+    def _center_geometry(self):
+        side = min(self.width(), self.height()) - 8
+        center = QtCore.QPointF(self.width() / 2, self.height() / 2)
+        return side, center, side * 0.22
+
+    def _selection_from_position(self, position, require_inside=True):
+        side , center, center_radius = self._center_geometry()
+        delta_x = position.x() - center.x()
+        delta_y = position.y() - center.y()
+        if require_inside and math.hypot(delta_x, delta_y) > side:
+            return False
+
+        angle = (90.0 - math.degrees(math.atan2(delta_y, delta_x))) % 360.0
+        selected = int(round(angle / 360.0 * self.projection_count)) % self.projection_count
+        if selected != self.selected_projection:
+            self.selected_projection = selected
+            self.paint_pending = True
+            self.setToolTip(
+                'Projection {}/{} ({:.1f} deg)'.format(
+                    selected + 1,
+                    self.projection_count,
+                    selected * 360.0 / self.projection_count,
+                )
+            )
+        return True
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton and self._selection_from_position(event.localPos()):
+            self.selection_drag_active = True
+            self.setFocus()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.selection_drag_active and event.buttons() & QtCore.Qt.LeftButton:
+            self._selection_from_position(event.localPos(), require_inside=False)
+            self.selection_changed.emit(self.selected_projection)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton and self.selection_drag_active:
+            self._selection_from_position(event.localPos(), require_inside=False)
+            self.selection_drag_active = False
+            self.selection_changed.emit(self.selected_projection)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event):
+        step = 1 if event.angleDelta().y() > 0 else -1
+        self.selected_projection = (self.selected_projection + step) % self.projection_count
+        self.paint_pending = True
+        self.selection_changed.emit(self.selected_projection)
+        event.accept()
+
+    def keyPressEvent(self, event):
+        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Down):
+            self.selected_projection = (self.selected_projection - 1) % self.projection_count
+        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_Up):
+            self.selected_projection = (self.selected_projection + 1) % self.projection_count
+        else:
+            super().keyPressEvent(event)
+            return
+
+        self.paint_pending = True
+        self.selection_changed.emit(self.selected_projection)
+
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
-        side = min(self.width(), self.height()) - 8
+        side, center, center_radius = self._center_geometry()
         ring_width = max(12.0, side * 0.27)
         ring_diameter = side - ring_width
         circle = QtCore.QRectF(
@@ -138,8 +216,6 @@ class AngularStatusWidget(QtWidgets.QWidget):
         self._draw_arc_runs(painter, circle, 1, QtGui.QColor('#9c2aa0'), ring_width)
         self._draw_arc_runs(painter, circle, 2, QtGui.QColor('#49a72f'), ring_width)
 
-        center_radius = side * 0.22
-        center = circle.center()
         painter.setBrush(QtGui.QColor('#49a72f') if self.complete else QtGui.QColor('#e53935'))
         painter.setPen(QtGui.QPen(QtGui.QColor('#4a4a4a'), 1))
         painter.drawEllipse(center, center_radius, center_radius)
@@ -158,6 +234,23 @@ class AngularStatusWidget(QtWidgets.QWidget):
         painter.setPen(QtGui.QPen(QtGui.QColor('#202124'), 2))
         painter.drawLine(center, endpoint)
         painter.drawLine(center, endpoint2)
+
+        selection_angle = -math.radians(
+            self.selected_projection * 360.0 / self.projection_count - 90.0
+        )
+        #selection_radius = center_radius * 0.78
+        selection_radius = side/2
+        selection_endpoint = QtCore.QPointF(
+            center.x() + math.cos(selection_angle) * selection_radius,
+            center.y() + math.sin(selection_angle) * selection_radius,
+        )
+        painter.setPen(QtGui.QPen(QtGui.QColor('#202124'), 5, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap))
+        painter.drawLine(center, selection_endpoint)
+        painter.setPen(QtGui.QPen(QtGui.QColor('#ffffff'), 2, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap))
+        painter.drawLine(center, selection_endpoint)
+        painter.setPen(QtGui.QPen(QtGui.QColor('#202124'), 1))
+        painter.setBrush(QtGui.QColor('#ffffff'))
+        painter.drawEllipse(selection_endpoint, 4, 4)
 
 
 
@@ -265,6 +358,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.last_lens = None
 
         self.binningx,self.binningy = self.binningx_pv.get(),self.binningy_pv.get()
+        self.binning.setValue(self.binningx)
+
+        self.camera_acquire_pv = epics.PV("PCOEdge:cam1:Acquire")
+        self.camera_acquiretime_pv = epics.PV("PCOEdge:cam1:AcquireTime")
+        self.camera_acquireperiod_pv = epics.PV("PCOEdge:cam1:AcquirePeriod")
+
 
         #self.sizeX, self.sizeY = round(self.sizeX_pv.get()/self.binningx), round(self.sizeY_pv.get()/self.binningy)
         #self.sizeX, self.sizeY = int(self.sizeX_pv.get()/self.binningx_pv.get()), int(self.sizeY_pv.get()/self.binningy_pv.get())
@@ -280,8 +379,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         else:
             print('No rotation detected!')
 
+        self.ringbuffer_projection_size = int(math.ceil(self.ringbuffer_size[0] / 10))
         old_dial = self.dial
-        self.dial = AngularStatusWidget(self.ringbuffer_size[0], old_dial.parentWidget())
+        self.dial = AngularStatusWidget(
+            self.ringbuffer_size[0],
+            self.ringbuffer_projection_size,
+            old_dial.parentWidget(),
+        )
         self.dial.setObjectName('dial')
         self.gridLayout_6.replaceWidget(old_dial, self.dial)
         old_dial.deleteLater()
@@ -305,7 +409,6 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.image_pv = epics.PV("PCOEdge:image1:ArrayData", auto_monitor=True)
         self.proj_pv = epics.PV("PCOEdge:image2:ArrayData", auto_monitor=True)
-        self.image_pv.add_callback(self.update)
 
         self.pv_rec['dimension'] = [
              {'size': self.ringbuffer_size[2], 'fullSize': self.ringbuffer_size[2], 'binning': 1},
@@ -316,11 +419,19 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
              {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}]
         self.projection = self.proj_pv.get()
 
+        self.roi1_minY = epics.PV("PCOEdge:ROI1:MinY_RBV").get()
+        self.roi2_biny = epics.PV("PCOEdge:ROI2:BinY_RBV").get()
+
         self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.starting_omega_pv = self.omega_pv.get()
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
-        self.ringbuffer_projection_size = round(self.ringbuffer_size[0] / 10)
-        self.ringbuffer_projection = numpy.zeros((self.ringbuffer_projection_size,self.proj_size_x,self.proj_size_y), dtype=numpy.float32)
+        self.ringbuffer_projection = numpy.zeros(
+            (self.ringbuffer_projection_size, self.proj_size_y, self.proj_size_x),
+            dtype=numpy.float32,
+        )
+        self.projection_valid = numpy.zeros(self.ringbuffer_projection_size, dtype=bool)
+        self.projection_lock = threading.Lock()
+        self.dial.selection_changed.connect(self.send_projection)
 
         self.ringbuffer_exists = 1
         print('ringbuffer created with size: ', self.ringbuffer.shape)
@@ -328,22 +439,63 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.sino_chopped = numpy.zeros((int(self.ringbuffer_size[0]/2),1, self.ringbuffer_size[2]), dtype='H')
 
         self.ruler_grid_line_thickness = 1
-        self.rotation_offset = 0 #still under question
+        self.rotation_offset = 45 #still under question
         self.label_x = 'Piezo 45 [um]'
         self.label_y = 'Piezo 135 [um]'
 
         self.N = int(self.ringbuffer_size[0])
         self.start_rotate.setEnabled(True)
+        self.image_pv.add_callback(self.update)
 
     def rotate(self):
         self.rotate_status = self.jogF_pv.get()
         if self.rotate_status == 0:
+            self.camera_acquire_pv.put(0)
+            time.sleep(2)
+            self.camera_acquiretime_pv.put(0.0175)
+            time.sleep(0.5)
+            self.camera_acquireperiod_pv.put(0.02)
+            time.sleep(0.1)
+            self.camera_acquire_pv.put(1)
             self.jogF_pv.put(1)
             self.start_rotate.setText('STOP')
         else:
             self.jogF_pv.put(0)
             self.start_rotate.setText('Start endless rotation')
             self.starting_omega_pv = self.omega_pv.get()
+
+    def dashed_vertical_line(self,img, y, x0, x1, color, stroke=5, gap=5):
+        stride = stroke + gap
+        for x in range(x0, x1):
+            if (x % stride) < stroke:
+                img[y, x] = color
+
+    @QtCore.pyqtSlot(int)
+    def send_projection(self, projection_index):
+        projection_index = int(projection_index) % self.ringbuffer_projection_size
+        with self.projection_lock:
+            if not self.projection_valid[projection_index]:
+                print('Projection slot', projection_index, 'has not been acquired yet')
+                return
+            self.projection = self.ringbuffer_projection[projection_index].copy()
+
+        self.ruler_grid_color = math.ceil(numpy.max(self.projection))
+
+
+        self.dashed_vertical_line(img=self.projection,y= int(self.roi1_minY/self.roi2_biny), x0=0,x1= self.projection.shape[1]-1, color= self.ruler_grid_color)
+
+        print('olalal')
+        print(int(self.roi1_minY/self.roi2_biny))
+
+        self.proj_rec['value'] = (
+            {'floatValue': self.projection.flatten().astype(numpy.float32)},
+        )
+        print(
+            'Projection sent:',
+            projection_index,
+            'angle:',
+            round(projection_index * 360.0 / self.ringbuffer_projection_size, 1),
+        )
 
 
     def put_values(self, pv, value):
@@ -390,7 +542,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
     def create_ringbuffer(self):
         self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
-        self.ringbuffer_projection = numpy.zeros((self.ringbuffer_size[0],self.proj_size_y,self.proj_size_x), dtype=numpy.float32)
+        self.ringbuffer_projection_size = int(math.ceil(self.ringbuffer_size[0] / 10))
+        self.ringbuffer_projection = numpy.zeros(
+            (self.ringbuffer_projection_size, self.proj_size_y, self.proj_size_x),
+            dtype=numpy.float32,
+        )
+        self.projection_valid = numpy.zeros(self.ringbuffer_projection_size, dtype=bool)
 
         self.proj_rec['dimension'] = [
             {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
@@ -436,18 +593,28 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.current_omega_pv = self.omega_pv.get()
 
-        # print(self.projection)
-        # print(self.ringbuffer_projection)
-        # print(self.ringbuffer_size[0])
-        # print(self.i)
-        #if (self.current_omega_pv % 360)-90 >0.05:
         if (self.i % 10) == 0:
-            self.projection = self.proj_pv.get()
-            if self.projection is not None:
-                self.ringbuffer_projection[int((self.i% self.ringbuffer_size[0])/10),:,:] = numpy.reshape(self.projection,(self.proj_size_x,self.proj_size_y))
-            #if dial.value = int((self.i% self.ringbuffer_size[0])/10):
-            self.proj_rec['value'] = (
-                    {'floatValue': self.projection.flatten().astype(numpy.float32)},)
+            projection = self.proj_pv.get()
+            if projection is not None:
+                projection = numpy.asarray(projection)
+                expected_size = self.proj_size_x * self.proj_size_y
+                if projection.size == expected_size:
+                    projection_slot = int((self.i % self.ringbuffer_size[0]) // 10)
+                    projection_frame = projection.reshape((self.proj_size_y, self.proj_size_x))
+                    with self.projection_lock:
+                        self.ringbuffer_projection[projection_slot, :, :] = projection_frame
+                        self.projection_valid[projection_slot] = True
+
+                    # Keep the selected view current when its slot is refreshed.
+                    if projection_slot == self.dial.selected_projection:
+                        self.send_projection(projection_slot)
+                else:
+                    print(
+                        'Projection size mismatch:',
+                        projection.size,
+                        'expected:',
+                        expected_size,
+                    )
 
         #print('omega to initial omega difference', self.current_omega_pv-self.starting_omega_pv)
         #self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = self.current_omega_pv
@@ -661,12 +828,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
 
     def prefill_CORs(self):
-        if self.COR_1.value() == 0:
-            print('preset CORs to half image size')
-            self.COR_1.setValue(round(self.sizeX_pv.get() / 2))
-            self.COR_2.setValue(round(self.sizeX_pv.get() / 2))
-            self.COR_3.setValue(round(self.sizeX_pv.get() / 2))
-            self.COR_4.setValue(round(self.sizeX_pv.get() / 2))
+
+        print('preset CORs to half image size')
+        self.COR_1.setValue(round(self.sizeX_pv.get() / 2))
+        self.COR_2.setValue(round(self.sizeX_pv.get() / 2))
+        self.COR_3.setValue(round(self.sizeX_pv.get() / 2))
+        self.COR_4.setValue(round(self.sizeX_pv.get() / 2))
 
     def prefill_pixel_size(self):
 
@@ -706,6 +873,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
             self.COR = self.COR_1.value()
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_1.value()
+            self.pixel_size.setValue(self.pixel_size_set)
         elif current_lens == '5x':
             self.pixel_size_set = 1.44
             if self.COR_5x_flag == False:
@@ -721,6 +889,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
             self.COR = self.COR_2.value()
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_2.value()
+            self.pixel_size.setValue(self.pixel_size_set)
         elif current_lens == '10x':
             self.pixel_size_set = 0.72
             if self.COR_10x_flag == False:
@@ -736,6 +905,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
             self.COR = self.COR_3.value()
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_3.value()
+            self.pixel_size.setValue(self.pixel_size_set)
         elif current_lens == '20x':
             self.pixel_size_set = 0.36
             if self.COR_20x_flag == False:
@@ -751,6 +921,7 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
             self.COR = self.COR_4.value()
             self.spinBox_ruler_grid = self.spinBox_ruler_grid_4.value()
+            self.pixel_size.setValue(self.pixel_size_set)
         else:
             self.buttons_deactivate_all()
 
