@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 #import Image
 
 
+
 # On-the-fly Navigator
-version =  "Version 2026.16.06"
+version =  "Version 2026.07.12"
 
 os.environ["EPICS_CA_ADDR_LIST"] = "172.31.20.131 172.31.20.231 172.31.20.145"
 
@@ -313,10 +314,13 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
         self.proj_rec['dimension'] = [
              {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
              {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}]
+        self.projection = self.proj_pv.get()
 
         self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.starting_omega_pv = self.omega_pv.get()
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
+        self.ringbuffer_projection_size = round(self.ringbuffer_size[0] / 10)
+        self.ringbuffer_projection = numpy.zeros((self.ringbuffer_projection_size,self.proj_size_x,self.proj_size_y), dtype=numpy.float32)
 
         self.ringbuffer_exists = 1
         print('ringbuffer created with size: ', self.ringbuffer.shape)
@@ -386,6 +390,12 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
     def create_ringbuffer(self):
         self.ringbuffer = numpy.ones(self.ringbuffer_size, dtype='H')
         self.ringbuffer_Micos_W = numpy.zeros(self.ringbuffer_size[0], dtype=numpy.float32)
+        self.ringbuffer_projection = numpy.zeros((self.ringbuffer_size[0],self.proj_size_y,self.proj_size_x), dtype=numpy.float32)
+
+        self.proj_rec['dimension'] = [
+            {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
+            {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}
+        ]
 
         self.ringbuffer_exists = 1
         print('ringbuffer created with size: ', self.ringbuffer.shape)
@@ -426,17 +436,18 @@ class OnTheFlyNavigator(Ui_on_the_fly_Navigator_Window, Q_on_the_fly_Navigator_W
 
         self.current_omega_pv = self.omega_pv.get()
 
-        if (self.current_omega_pv % 360)-90 >0.05:
-            projection = self.proj_pv.get()
-            if projection is not None:
-                projection = numpy.asarray(projection)
-                self.proj_rec['dimension'] = [
-                    {'size': self.proj_size_x, 'fullSize': self.proj_size_x, 'binning': 1},
-                    {'size': self.proj_size_y, 'fullSize': self.proj_size_y, 'binning': 1}
-                ]
-                self.proj_rec['value'] = (
-                    {'floatValue': projection.flatten().astype(numpy.float32)},
-                )
+        # print(self.projection)
+        # print(self.ringbuffer_projection)
+        # print(self.ringbuffer_size[0])
+        # print(self.i)
+        #if (self.current_omega_pv % 360)-90 >0.05:
+        if (self.i % 10) == 0:
+            self.projection = self.proj_pv.get()
+            if self.projection is not None:
+                self.ringbuffer_projection[int((self.i% self.ringbuffer_size[0])/10),:,:] = numpy.reshape(self.projection,(self.proj_size_x,self.proj_size_y))
+            #if dial.value = int((self.i% self.ringbuffer_size[0])/10):
+            self.proj_rec['value'] = (
+                    {'floatValue': self.projection.flatten().astype(numpy.float32)},)
 
         #print('omega to initial omega difference', self.current_omega_pv-self.starting_omega_pv)
         #self.ringbuffer_Micos_W[self.i % self.ringbuffer_size[0]] = self.current_omega_pv
